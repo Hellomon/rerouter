@@ -140,6 +140,10 @@ export interface ScreenConfig {
   screenOffsetY: number; // developer calculated
   actionDuring: number; // FPS, should > frame ms
   rotation: 'vertical' | 'horizontal';
+  lastLogScreenshot: number;
+  logScreenshotMinIntervalInSec: number;
+  logScreenshotMaxFiles: number;
+  logScreenshotFolder: string;
 }
 
 export interface RerouterConfig {
@@ -203,4 +207,8 @@ export const DefaultScreenConfig: ScreenConfig = {
   screenOffsetY: 0,
   actionDuring: 180,
   rotation: 'horizontal',
+  lastLogScreenshot: 0,
+  logScreenshotMinIntervalInSec: 10,
+  logScreenshotMaxFiles: 100,
+  logScreenshotFolder: 'no_device_id',
 };

@@ -15,6 +15,8 @@ export function log(...msgs: any[]) {
 }
 
 export class Utils {
+  static basePath = '/sdcard/Pictures/Screenshots/robotmon';
+
   public static identityColor(e1: RGB, e2: RGB) {
     const mean = (e1.r + e2.r) / 2;
     const r = e1.r - e2.r;
@@ -186,5 +188,71 @@ export class Utils {
       return true;
     }
     return false;
+  }
+
+  public static padZero(num: number) {
+    return num < 10 ? `0${num}` : `${num}`;
+  }
+
+  public static saveImageToDisk(folderName?: string, saveReason?: string, filename?: string) {
+    let folderPath = this.basePath;
+    if (folderName !== undefined) {
+      folderPath = `${folderPath}/${folderName}`;
+    }
+
+    saveReason = saveReason === undefined ? 'crash-img' : saveReason;
+    if (filename === undefined) {
+      const date = new Date(Utils.getTaiwanTime());
+      filename = `${this.padZero(date.getMonth() + 1)}-${this.padZero(date.getDate())}T${this.padZero(date.getHours())}.${this.padZero(
+        date.getMinutes()
+      )}.${this.padZero(date.getSeconds())}-${saveReason}.png`;
+    }
+
+    var img = getScreenshot();
+    saveImage(img, `${folderPath}/${filename}`);
+    Utils.log(`Write to file: ${folderPath}/${filename}`);
+
+    releaseImage(img);
+  }
+
+  public static removeOldestFilesIfExceedsLimit(folderName?: string, maxFiles: number = 100): void {
+    let folderPath = this.basePath;
+    if (folderName !== undefined) {
+      folderPath = `${folderPath}/${folderName}`;
+    }
+
+    const fileList = execute(`ls -l ${folderPath}`).split('\n');
+
+    const filesWithDates = fileList.map(line => {
+      const parts = line.trim().split(' ');
+      const dateParts = parts[parts.length - 3].split('-');
+      const timeParts = parts[parts.length - 2].split(':');
+      const filename = parts[parts.length - 1];
+
+      // Convert the date and time to a Date object
+      const dateObj = new Date(
+        parseInt(dateParts[0]), // year
+        parseInt(dateParts[1]) - 1, // month (0-11)
+        parseInt(dateParts[2]), // day
+        parseInt(timeParts[0]), // hours
+        parseInt(timeParts[1]) // minutes
+      );
+
+      return {
+        date: dateObj,
+        filename: filename,
+      };
+    });
+
+    filesWithDates.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // If there are more than ${maxFiles} files, remove the oldest
+    while (filesWithDates.length > maxFiles) {
+      const oldestFile = filesWithDates.shift();
+      if (oldestFile) {
+        execute(`rm ${folderPath}/${oldestFile.filename}`);
+        Utils.log(`rm: ${folderPath}/${oldestFile.filename}`);
+      }
+    }
   }
 }
