@@ -194,19 +194,18 @@ export class Utils {
     return num < 10 ? `0${num}` : `${num}`;
   }
 
-  public static saveImageToDisk(folderName?: string, saveReason?: string, filename?: string) {
+  public static saveImageToDisk(folderName?: string, saveReason?: string) {
     let folderPath = this.basePath;
     if (folderName !== undefined) {
       folderPath = `${folderPath}/${folderName}`;
     }
 
     saveReason = saveReason === undefined ? 'crash-img' : saveReason;
-    if (filename === undefined) {
-      const date = new Date(Utils.getTaiwanTime());
-      filename = `${this.padZero(date.getMonth() + 1)}-${this.padZero(date.getDate())}T${this.padZero(date.getHours())}.${this.padZero(
-        date.getMinutes()
-      )}.${this.padZero(date.getSeconds())}-${saveReason}.png`;
-    }
+    const date = new Date(Utils.getTaiwanTime());
+    const [YYYY, MM, dd, hh, mm, ss] = [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()].map(
+      item => this.padZero(item)
+    );
+    const filename = `${YYYY}-${MM}-${dd}T${hh}.${mm}.${ss}_${saveReason}.png`;
 
     var img = getScreenshot();
     saveImage(img, `${folderPath}/${filename}`);
@@ -225,18 +224,8 @@ export class Utils {
 
     const filesWithDates = fileList.map(line => {
       const parts = line.trim().split(' ');
-      const dateParts = parts[parts.length - 3].split('-');
-      const timeParts = parts[parts.length - 2].split(':');
-      const filename = parts[parts.length - 1];
-
-      // Convert the date and time to a Date object
-      const dateObj = new Date(
-        parseInt(dateParts[0]), // year
-        parseInt(dateParts[1]) - 1, // month (0-11)
-        parseInt(dateParts[2]), // day
-        parseInt(timeParts[0]), // hours
-        parseInt(timeParts[1]) // minutes
-      );
+      const filename = parts[parts.length - 1]; // 2023-09-02T15.08.17_log.png
+      const dateObj = new Date(parts[parts.length - 3].split('_')[0]);
 
       return {
         date: dateObj,
