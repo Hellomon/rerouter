@@ -1,10 +1,11 @@
-import { ScreenConfig, XY, XYRGB } from './struct';
+import { DefaultRerouterConfig, RerouterConfig, ScreenConfig, XY, XYRGB } from './struct';
 import { Utils } from './utils';
 
 export class Screen {
   public static debug: boolean = false;
 
   private config: ScreenConfig;
+  private rerouterConfig: RerouterConfig = DefaultRerouterConfig;
 
   public constructor(config: ScreenConfig) {
     this.config = config;
@@ -164,10 +165,10 @@ export class Screen {
   }
 
   checkAndSaveScreenshots() {
-    if (Date.now() - this.config.lastLogScreenshot > this.config.logScreenshotMinIntervalInSec * 1000) {
+    if (this.rerouterConfig.deviceId !== '' && Date.now() - this.config.lastLogScreenshot > this.config.logScreenshotMinIntervalInSec * 1000) {
       this.config.lastLogScreenshot = Date.now();
-      Utils.saveImageToDisk(this.config.logScreenshotFolder, 'log');
-      Utils.removeOldestFilesIfExceedsLimit(this.config.logScreenshotFolder, this.config.logScreenshotMaxFiles);
+      Utils.saveImageToDisk(this.rerouterConfig.deviceId, 'log');
+      Utils.removeOldestFilesIfExceedsLimit(this.rerouterConfig.deviceId, this.config.logScreenshotMaxFiles);
     }
   }
 

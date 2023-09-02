@@ -143,7 +143,6 @@ export interface ScreenConfig {
   lastLogScreenshot: number;
   logScreenshotMinIntervalInSec: number;
   logScreenshotMaxFiles: number;
-  logScreenshotFolder: string;
 }
 
 export interface RerouterConfig {
@@ -152,6 +151,7 @@ export interface RerouterConfig {
   startAppDelay: number;
   autoLaunchApp: boolean;
   testingScreenshotPath: string;
+  deviceId: string;
 }
 
 export const DefaultConfigValue: {
@@ -194,6 +194,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   startAppDelay: 6000,
   autoLaunchApp: true,
   testingScreenshotPath: './screenshot',
+  deviceId: '',
 };
 
 export const DefaultScreenConfig: ScreenConfig = {
@@ -210,5 +211,4 @@ export const DefaultScreenConfig: ScreenConfig = {
   lastLogScreenshot: 0,
   logScreenshotMinIntervalInSec: 10,
   logScreenshotMaxFiles: 100,
-  logScreenshotFolder: 'no_device_id',
 };
