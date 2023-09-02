@@ -1,4 +1,4 @@
-import { ScreenConfig, XY, XYRGB } from './struct';
+import { DefaultRerouterConfig, ScreenConfig, XY, XYRGB } from './struct';
 import { Utils } from './utils';
 
 export class Screen {
@@ -163,7 +163,17 @@ export class Screen {
     );
   }
 
+  checkAndSaveScreenshots() {
+    if (DefaultRerouterConfig.deviceId !== '' && Date.now() - this.config.lastLogScreenshot > this.config.logScreenshotMinIntervalInSec * 1000) {
+      this.config.lastLogScreenshot = Date.now();
+      Utils.saveImageToDisk(DefaultRerouterConfig.deviceId, 'log');
+      Utils.removeOldestFilesIfExceedsLimit(DefaultRerouterConfig.deviceId, this.config.logScreenshotMaxFiles);
+    }
+  }
+
   public getCvtDevScreenshot(): Image {
+    this.checkAndSaveScreenshots();
+
     return getScreenshotModify(
       this.config.screenOffsetX,
       this.config.screenOffsetY,

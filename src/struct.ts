@@ -140,6 +140,9 @@ export interface ScreenConfig {
   screenOffsetY: number; // developer calculated
   actionDuring: number; // FPS, should > frame ms
   rotation: 'vertical' | 'horizontal';
+  lastLogScreenshot: number;
+  logScreenshotMinIntervalInSec: number;
+  logScreenshotMaxFiles: number;
 }
 
 export interface RerouterConfig {
@@ -148,6 +151,7 @@ export interface RerouterConfig {
   startAppDelay: number;
   autoLaunchApp: boolean;
   testingScreenshotPath: string;
+  deviceId: string;
 }
 
 export const DefaultConfigValue: {
@@ -190,6 +194,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   startAppDelay: 6000,
   autoLaunchApp: true,
   testingScreenshotPath: './screenshot',
+  deviceId: '',
 };
 
 export const DefaultScreenConfig: ScreenConfig = {
@@ -203,4 +208,7 @@ export const DefaultScreenConfig: ScreenConfig = {
   screenOffsetY: 0,
   actionDuring: 180,
   rotation: 'horizontal',
+  lastLogScreenshot: 0,
+  logScreenshotMinIntervalInSec: 10,
+  logScreenshotMaxFiles: 100,
 };

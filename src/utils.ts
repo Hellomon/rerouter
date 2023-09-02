@@ -15,6 +15,8 @@ export function log(...msgs: any[]) {
 }
 
 export class Utils {
+  static basePath = '/sdcard/Pictures/Screenshots/robotmon';
+
   public static identityColor(e1: RGB, e2: RGB) {
     const mean = (e1.r + e2.r) / 2;
     const r = e1.r - e2.r;
@@ -186,5 +188,60 @@ export class Utils {
       return true;
     }
     return false;
+  }
+
+  public static padZero(num: number) {
+    return num < 10 ? `0${num}` : `${num}`;
+  }
+
+  public static saveImageToDisk(folderName?: string, saveReason?: string) {
+    let folderPath = this.basePath;
+    if (folderName !== undefined) {
+      folderPath = `${folderPath}/${folderName}`;
+    }
+
+    saveReason = saveReason === undefined ? 'crash-img' : saveReason;
+    const date = new Date(Utils.getTaiwanTime());
+    const [YYYY, MM, dd, hh, mm, ss] = [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()].map(
+      item => this.padZero(item)
+    );
+    const filename = `${YYYY}-${MM}-${dd}T${hh}.${mm}.${ss}_${saveReason}.png`;
+
+    var img = getScreenshot();
+    saveImage(img, `${folderPath}/${filename}`);
+    Utils.log(`Write to file: ${folderPath}/${filename}`);
+
+    releaseImage(img);
+  }
+
+  public static removeOldestFilesIfExceedsLimit(folderName?: string, maxFiles: number = 100): void {
+    let folderPath = this.basePath;
+    if (folderName !== undefined) {
+      folderPath = `${folderPath}/${folderName}`;
+    }
+
+    const fileList = execute(`ls -l ${folderPath}`).split('\n');
+
+    const filesWithDates = fileList.map(line => {
+      const parts = line.trim().split(' ');
+      const filename = parts[parts.length - 1]; // 2023-09-02T15.08.17_log.png
+      const dateObj = new Date(parts[parts.length - 3].split('_')[0]);
+
+      return {
+        date: dateObj,
+        filename: filename,
+      };
+    });
+
+    filesWithDates.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // If there are more than ${maxFiles} files, remove the oldest
+    while (filesWithDates.length > maxFiles) {
+      const oldestFile = filesWithDates.shift();
+      if (oldestFile) {
+        execute(`rm ${folderPath}/${oldestFile.filename}`);
+        Utils.log(`rm: ${folderPath}/${oldestFile.filename}`);
+      }
+    }
   }
 }
