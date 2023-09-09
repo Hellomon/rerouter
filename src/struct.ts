@@ -153,8 +153,6 @@ export interface RerouterConfig {
   testingScreenshotPath: string;
   deviceId: string;
   strictMode: boolean;
-  developerIds: string[];
-  playerId: string;
 }
 
 export const DefaultConfigValue: {
@@ -199,8 +197,6 @@ export const DefaultRerouterConfig: RerouterConfig = {
   testingScreenshotPath: './screenshot',
   deviceId: '',
   strictMode: false,
-  developerIds: [],
-  playerId: '',
 };
 
 export const DefaultScreenConfig: ScreenConfig = {
