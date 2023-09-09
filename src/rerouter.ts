@@ -471,18 +471,37 @@ export class Rerouter {
     matchedRoute: Required<RouteConfig> | null;
     matchedPages: Page[];
   } {
+    let matches: {
+      matchedRoute: Required<RouteConfig> | null;
+      matchedPages: Page[];
+    }[] = [];
+
     for (const route of this.routes) {
       const { isMatched, matchedPages } = this.isMatchRouteImpl(image, rotation, route, taskName);
       if (isMatched) {
-        this.logImpl(
-          route.debug,
-          'current match:',
-          matchedPages.map(p => p.name)
-        );
-        return { matchedRoute: route, matchedPages };
+        if (this.rerouterConfig.strictMode) {
+          matches.push({ matchedRoute: route, matchedPages });
+        } else {
+          this.logImpl(
+            route.debug,
+            'current match:',
+            matchedPages.map(p => p.name)
+          );
+          return { matchedRoute: route, matchedPages };
+        }
       }
     }
-    return { matchedRoute: null, matchedPages: [] };
+
+    if (this.rerouterConfig.strictMode) {
+      if (this.rerouterConfig.developerIds.includes(this.rerouterConfig.playerId)) {
+        Utils.saveImageToDisk(DefaultRerouterConfig.deviceId, 'conflictedRoutes');
+        throw new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matches)}`);
+      }
+      keycode('KEYCODE_BACK', 100);
+      return { matchedRoute: null, matchedPages: [] };
+    } else {
+      return { matchedRoute: null, matchedPages: [] };
+    }
   }
 
   private isMatchRouteImpl(
