@@ -53,8 +53,7 @@ declare global {
   function swipe(x1: number, y1: number, x2: number, y2: number): void;
   function keycode(label: string, during: number): void;
   function typing(words: string, during: number): void;
-  function readFile(path: string): string;
-  function writeFile(path: string, text: string): number;
+  function readFile(path: string): string | undefined;
 
   // opencv apis
   function clone(sourceImg: Image): Image;
@@ -120,8 +119,6 @@ declare global {
     token: string,
     ssl: boolean
   ): true | string;
-  function readFile(path: string): string | undefined;
-  function writeFile(path: string, content: string): void;
   function targz(targetPath: string, sourcePath: string): string | 'success';
   function untargz(sourcePath: string): string | 'success';
   function xDecodeHex(hexedString: string): string | undefined;

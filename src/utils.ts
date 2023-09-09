@@ -74,6 +74,13 @@ export class Utils {
     console.log(dateString, ...args);
   }
 
+  public static writeFile(path: string, content: string): number {
+    // @ts-ignore
+    const rtn = writeFile(path, content);
+    execute(`chmod 777 ${path}`);
+    return rtn;
+  }
+
   public static notifyEvent(event: string, content: string) {
     if (sendEvent != undefined) {
       Utils.log('sendEvent', event, content);
