@@ -152,7 +152,7 @@ export interface RerouterConfig {
   autoLaunchApp: boolean;
   testingScreenshotPath: string;
   deviceId: string;
-  strictMode: false;
+  strictMode: boolean;
   developerIds: string[];
   playerId: string;
 }

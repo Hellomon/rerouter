@@ -493,7 +493,7 @@ export class Rerouter {
     }
 
     if (this.rerouterConfig.strictMode) {
-      if (this.rerouterConfig.developerIds.includes(this.rerouterConfig.playerId)) {
+      if (this.rerouterConfig.developerIds.indexOf(this.rerouterConfig.playerId) !== -1) {
         Utils.saveImageToDisk(DefaultRerouterConfig.deviceId, 'conflictedRoutes');
         throw new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matches)}`);
       }
