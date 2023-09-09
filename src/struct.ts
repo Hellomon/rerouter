@@ -199,7 +199,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   testingScreenshotPath: './screenshot',
   deviceId: '',
   strictMode: false,
-  developerIds: [''],
+  developerIds: [],
   playerId: '',
 };
 
