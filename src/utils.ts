@@ -14,6 +14,13 @@ export function log(...msgs: any[]) {
   console.log(message.substr(0, message.length - 1));
 }
 
+export function writeFile(path: string, content: string): number {
+  // @ts-ignore
+  const rtn = writeFile(path, content);
+  execute(`chmod 777 ${path}`);
+  return rtn;
+}
+
 export class Utils {
   static basePath = '/sdcard/Pictures/Screenshots/robotmon';
 
@@ -72,13 +79,6 @@ export class Utils {
     const date = new Date(Utils.getTaiwanTime());
     const dateString = `[${date.getMonth() + 1}-${date.getDate()}T${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}]`;
     console.log(dateString, ...args);
-  }
-
-  public static writeFile(path: string, content: string): number {
-    // @ts-ignore
-    const rtn = writeFile(path, content);
-    execute(`chmod 777 ${path}`);
-    return rtn;
   }
 
   public static notifyEvent(event: string, content: string) {
