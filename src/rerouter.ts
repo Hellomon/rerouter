@@ -496,6 +496,14 @@ export class Rerouter {
       default:
         if (this.rerouterConfig.strictMode) {
           Utils.saveImageToDisk(DefaultRerouterConfig.deviceId, 'conflictedRoutes');
+          if (this.rerouterConfig.debugSlackUrl !== '') {
+            Utils.sendSlackMessage(
+              this.rerouterConfig.debugSlackUrl,
+              'Conflict Routes Report',
+              `${DefaultRerouterConfig.deviceId} just logged a conflict route image`
+            );
+          }
+
           throw new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matches)}`);
         } else {
           keycode('KEYCODE_BACK', 100);

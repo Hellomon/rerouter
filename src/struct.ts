@@ -153,6 +153,7 @@ export interface RerouterConfig {
   testingScreenshotPath: string;
   deviceId: string;
   strictMode: boolean;
+  debugSlackUrl: string;
 }
 
 export const DefaultConfigValue: {
@@ -197,6 +198,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   testingScreenshotPath: './screenshot',
   deviceId: '',
   strictMode: false,
+  debugSlackUrl: '',
 };
 
 export const DefaultScreenConfig: ScreenConfig = {
