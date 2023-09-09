@@ -14,6 +14,13 @@ export function log(...msgs: any[]) {
   console.log(message.substr(0, message.length - 1));
 }
 
+export function writeFile(path: string, content: string): number {
+  // @ts-ignore
+  const rtn = writeFile(path, content);
+  execute(`chmod 777 ${path}`);
+  return rtn;
+}
+
 export class Utils {
   static basePath = '/sdcard/Pictures/Screenshots/robotmon';
 
