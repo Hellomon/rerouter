@@ -152,6 +152,7 @@ export interface RerouterConfig {
   autoLaunchApp: boolean;
   testingScreenshotPath: string;
   deviceId: string;
+  strictMode: boolean;
 }
 
 export const DefaultConfigValue: {
@@ -195,6 +196,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   autoLaunchApp: true,
   testingScreenshotPath: './screenshot',
   deviceId: '',
+  strictMode: false,
 };
 
 export const DefaultScreenConfig: ScreenConfig = {
