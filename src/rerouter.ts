@@ -471,7 +471,7 @@ export class Rerouter {
     matchedRoute: Required<RouteConfig> | null;
     matchedPages: Page[];
   } {
-    let matches: {
+    const matches: {
       matchedRoute: Required<RouteConfig> | null;
       matchedPages: Page[];
     }[] = [];
