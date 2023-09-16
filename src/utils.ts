@@ -222,6 +222,11 @@ export class Utils {
 
     const fileList = execute(`ls -l ${folderPath}`).split('\n');
 
+    // Some OS return first line total 8 (Mac, redroid), some not (Memu)
+    if (fileList[0] && fileList[0].indexOf('total') === 0) {
+      fileList.shift();
+    }
+
     const filesWithDates = fileList.map(line => {
       const parts = line.trim().split(' ');
       const filename = parts[parts.length - 1]; // 2023-09-02T15.08.17_log.png
