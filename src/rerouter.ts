@@ -53,12 +53,18 @@ export class Rerouter {
    * @param config information about how route match and route action
    */
   public addRoute(config: RouteConfig): void {
-    // Check if a route with the same path already exists
-    const existingRouteIndex = this.routes.findIndex(route => route.path === config.path);
+    let existingRouteIndex = -1;
+    for (let i = 0; i < this.routes.length; i++) {
+        if (this.routes[i].path === config.path) {
+            existingRouteIndex = i;
+            break;
+        }
+    }
 
-    // If it exists, update or simply return based on your preference
+    // If it exists, log a warning and decide what to do next
     if (existingRouteIndex !== -1) {
         this.warning(`A route with the path '${config.path}' already exists. Duplicate route will not be added.`);
+
         // Option 1: Update the existing route with the new configuration
         // this.routes[existingRouteIndex] = this.wrapRouteConfigWithDefault(config);
 
