@@ -55,21 +55,21 @@ export class Rerouter {
   public addRoute(config: RouteConfig): void {
     let existingRouteIndex = -1;
     for (let i = 0; i < this.routes.length; i++) {
-        if (this.routes[i].path === config.path) {
-            existingRouteIndex = i;
-            break;
-        }
+      if (this.routes[i].path === config.path) {
+        existingRouteIndex = i;
+        break;
+      }
     }
 
     // If it exists, log a warning and decide what to do next
     if (existingRouteIndex !== -1) {
-        this.warning(`A route with the path '${config.path}' already exists. Duplicate route will not be added.`);
+      this.warning(`A route with the path '${config.path}' already exists. Duplicate route will not be added.`);
 
-        // Option 1: Update the existing route with the new configuration
-        // this.routes[existingRouteIndex] = this.wrapRouteConfigWithDefault(config);
+      // Option 1: Update the existing route with the new configuration
+      // this.routes[existingRouteIndex] = this.wrapRouteConfigWithDefault(config);
 
-        // Option 2: Simply return and don't add the new route
-        return;
+      // Option 2: Simply return and don't add the new route
+      return;
     }
 
     // If it doesn't exist, push the new route
@@ -127,6 +127,20 @@ export class Rerouter {
     if (this.routeContext !== null) {
       this.routeContext.scriptRunning = false;
     }
+  }
+
+  public reset(): void {
+    this.log(`Rerouter reset called, trying clear all setups`);
+    this.debug = true;
+    this.defaultConfig = DefaultConfigValue;
+    this.rerouterConfig = DefaultRerouterConfig;
+    this.screenConfig = DefaultScreenConfig;
+    this.screen = new Screen(this.screenConfig);
+    this.running = false;
+    this.routes = [];
+    this.tasks = [];
+    this.routeContext = null;
+    this.unknownRouteAction = null;
   }
 
   public checkInApp(): boolean {
