@@ -28,7 +28,7 @@ export class Rerouter {
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
 
   static reset(): void {
-    rerouter = new Rerouter();
+    rerouterProxy.target = new Rerouter();
   }
 
   /**
@@ -640,4 +640,13 @@ export class Rerouter {
   }
 }
 
-export let rerouter = new Rerouter();
+const rerouterProxy = {
+  target: new Rerouter(),
+  get: function() {
+      return this.target;
+  }
+};
+
+export const rerouter = new Proxy({}, {
+  get: () => rerouterProxy.get()
+});
