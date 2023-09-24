@@ -647,6 +647,6 @@ const rerouterProxy = {
   }
 };
 
-export const rerouter = new Proxy({}, {
+export const rerouter: Rerouter = new Proxy({}, {
   get: () => rerouterProxy.get()
-});
+}) as Rerouter;
