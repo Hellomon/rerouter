@@ -27,6 +27,10 @@ export class Rerouter {
   private routeContext: RouteContext | null = null;
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
 
+  static reset(): void {
+    rerouter = new Rerouter();
+  }
+
   /**
    * Recalculate some value like device width or height in screenConfig
    */
@@ -127,20 +131,6 @@ export class Rerouter {
     if (this.routeContext !== null) {
       this.routeContext.scriptRunning = false;
     }
-  }
-
-  public reset(): void {
-    this.log(`Rerouter reset called, trying clear all setups`);
-    this.debug = true;
-    this.defaultConfig = DefaultConfigValue;
-    this.rerouterConfig = DefaultRerouterConfig;
-    this.screenConfig = DefaultScreenConfig;
-    this.screen = new Screen(this.screenConfig);
-    this.running = false;
-    this.routes = [];
-    this.tasks = [];
-    this.routeContext = null;
-    this.unknownRouteAction = null;
   }
 
   public checkInApp(): boolean {
@@ -650,4 +640,4 @@ export class Rerouter {
   }
 }
 
-export const rerouter = new Rerouter();
+export let rerouter = new Rerouter();
