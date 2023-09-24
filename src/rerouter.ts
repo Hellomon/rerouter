@@ -16,7 +16,23 @@ import { Utils } from './utils';
 
 export class Rerouter {
   public debug!: boolean;
-  public defaultConfig: any;
+  public defaultConfig!: {
+    XYRGBThres: number;
+    PageThres: number;
+    GroupPageThres: number;
+    GroupPageMatchOP: '||' | '&&';
+    RouteConfigShouldMatchTimes: number;
+    RouteConfigShouldMatchDuring: number;
+    RouteConfigBeforeActionDelay: number;
+    RouteConfigAfterActionDelay: number;
+    RouteConfigPriority: number;
+    RouteConfigDebug: boolean;
+    TaskConfigMaxTaskRunTimes: number;
+    TaskConfigMaxTaskDuring: number;
+    TaskConfigMinRoundInterval: number;
+    TaskConfigAutoStop: boolean;
+    TaskConfigFindRouteDelay: number;
+  };
   public rerouterConfig!: RerouterConfig;
   public screenConfig!: ScreenConfig;
   public screen!: Screen;
