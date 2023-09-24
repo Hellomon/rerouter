@@ -15,17 +15,35 @@ import { Screen } from './screen';
 import { Utils } from './utils';
 
 export class Rerouter {
-  public debug: boolean = true;
-  public defaultConfig = DefaultConfigValue;
-  public rerouterConfig: RerouterConfig = DefaultRerouterConfig;
-  public screenConfig: ScreenConfig = DefaultScreenConfig;
-  public screen: Screen = new Screen(this.screenConfig);
+  public debug!: boolean;
+  public defaultConfig: any;
+  public rerouterConfig!: RerouterConfig;
+  public screenConfig!: ScreenConfig;
+  public screen!: Screen;
 
-  private running: boolean = false;
-  private routes: Required<RouteConfig>[] = [];
-  private tasks: Required<Task>[] = [];
-  private routeContext: RouteContext | null = null;
-  private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
+  private running!: boolean;
+  private routes!: Required<RouteConfig>[];
+  private tasks!: Required<Task>[];
+  private routeContext!: RouteContext | null;
+  private unknownRouteAction!: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null;
+
+  constructor() {
+    this.reset();
+  }
+
+  public reset(): void {
+    this.log(`Rerouter reset called, trying clear all setups`);
+    this.debug = true;
+    this.defaultConfig = DefaultConfigValue;
+    this.rerouterConfig = DefaultRerouterConfig;
+    this.screenConfig = DefaultScreenConfig;
+    this.screen = new Screen(this.screenConfig);
+    this.running = false;
+    this.routes = [];
+    this.tasks = [];
+    this.routeContext = null;
+    this.unknownRouteAction = null;
+  }
 
   /**
    * Recalculate some value like device width or height in screenConfig
@@ -127,20 +145,6 @@ export class Rerouter {
     if (this.routeContext !== null) {
       this.routeContext.scriptRunning = false;
     }
-  }
-
-  public reset(): void {
-    this.log(`Rerouter reset called, trying clear all setups`);
-    this.debug = true;
-    this.defaultConfig = DefaultConfigValue;
-    this.rerouterConfig = DefaultRerouterConfig;
-    this.screenConfig = DefaultScreenConfig;
-    this.screen = new Screen(this.screenConfig);
-    this.running = false;
-    this.routes = [];
-    this.tasks = [];
-    this.routeContext = null;
-    this.unknownRouteAction = null;
   }
 
   public checkInApp(): boolean {
