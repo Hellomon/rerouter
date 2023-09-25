@@ -650,4 +650,4 @@ export class Rerouter {
 //     return true;
 //   },
 // }) as any as Rerouter;
-export const rerouter: Rerouter = new Rerouter();
+export const rerouter = new Rerouter();
