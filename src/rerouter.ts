@@ -495,7 +495,6 @@ export class Rerouter {
         return matches[0];
       default:
         if (this.rerouterConfig.strictMode) {
-          // let matchNames = matches.flatMap(item => item.matchedPages.map(page => page.name));
           let matchNames = matches.reduce(function (acc: string[], item) {
             return acc.concat(
               item.matchedPages.map(function (page) {
