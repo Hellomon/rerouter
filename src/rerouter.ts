@@ -27,8 +27,10 @@ export class Rerouter {
   private routeContext: RouteContext | null = null;
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
 
-  static reset(): void {
-    rerouterContainer.instance = new Rerouter();
+  public reset(): void {
+    // NOTE: this is an another way that resets Rerouter, just leaving here for memory
+    // rerouterContainer.instance = new Rerouter();
+    Object.assign(this, new Rerouter());
   }
 
   /**
@@ -640,16 +642,18 @@ export class Rerouter {
   }
 }
 
-const rerouterContainer = {
-  instance: new Rerouter(),
-};
-import 'proxy-polyfill';
-export const rerouter: Rerouter = new Proxy(rerouterContainer, {
-  get: (target, prop: keyof Rerouter) => {
-    return target.instance[prop];
-  },
-  set: (target, prop: keyof Rerouter, value: any) => {
-    target.instance[prop] = value;
-    return true;
-  },
-}) as any as Rerouter;
+// NOTE: this is an another way that resets Rerouter, just leaving here for memory
+// const rerouterContainer = {
+//   instance: new Rerouter(),
+// };
+// import 'proxy-polyfill';
+// export const rerouter: Rerouter = new Proxy(rerouterContainer, {
+//   get: (target, prop: keyof Rerouter) => {
+//     return target.instance[prop];
+//   },
+//   set: (target, prop: keyof Rerouter, value: any) => {
+//     target.instance[prop] = value;
+//     return true;
+//   },
+// }) as any as Rerouter;
+export const rerouter: Rerouter = new Rerouter();
