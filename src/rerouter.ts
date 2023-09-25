@@ -640,18 +640,15 @@ export class Rerouter {
   }
 }
 
-// 1. 定義一個容器物件，其中包含 rerouterProxy
 const rerouterContainer = {
   instance: new Rerouter()
 };
-// 2. 創建一個新的 Proxy
+
 export const rerouter: Rerouter = new Proxy(rerouterContainer, {
   get: (target, prop: keyof Rerouter) => {
-    // Always return the property from the current Rerouter instance in the container
     return target.instance[prop];
   },
   set: (target, prop: keyof Rerouter, value: any) => {
-    // Always set the property on the current Rerouter instance in the container
     target.instance[prop] = value;
     return true;
   }
