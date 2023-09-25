@@ -59,13 +59,7 @@ export class Rerouter {
    * @param config information about how route match and route action
    */
   public addRoute(config: RouteConfig): void {
-    let existingRouteIndex = -1;
-    for (let i = 0; i < this.routes.length; i++) {
-      if (this.routes[i].path === config.path) {
-        existingRouteIndex = i;
-        break;
-      }
-    }
+    const existingRouteIndex = this.routes.findIndex(route => route.path === config.path);
 
     // If it exists, log a warning and decide what to do next
     if (existingRouteIndex !== -1) {
