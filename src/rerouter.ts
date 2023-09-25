@@ -643,7 +643,7 @@ export class Rerouter {
 const rerouterContainer = {
   instance: new Rerouter(),
 };
-import 'core-js/features/proxy';
+import 'proxy-polyfill/src/proxy';
 export const rerouter: Rerouter = new Proxy(rerouterContainer, {
   get: (target, prop: keyof Rerouter) => {
     return target.instance[prop];
