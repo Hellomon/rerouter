@@ -641,9 +641,9 @@ export class Rerouter {
 }
 
 const rerouterContainer = {
-  instance: new Rerouter()
+  instance: new Rerouter(),
 };
-
+import 'core-js/features/proxy';
 export const rerouter: Rerouter = new Proxy(rerouterContainer, {
   get: (target, prop: keyof Rerouter) => {
     return target.instance[prop];
@@ -651,5 +651,5 @@ export const rerouter: Rerouter = new Proxy(rerouterContainer, {
   set: (target, prop: keyof Rerouter, value: any) => {
     target.instance[prop] = value;
     return true;
-  }
+  },
 }) as any as Rerouter;
