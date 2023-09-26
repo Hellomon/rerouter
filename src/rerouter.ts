@@ -529,16 +529,24 @@ export class Rerouter {
         return matches[0];
       default:
         if (this.rerouterConfig.strictMode) {
+          let matchNames = matches.reduce(function (acc: string[], item) {
+            return acc.concat(
+              item.matchedPages.map(function (page) {
+                return page.name;
+              })
+            );
+          }, []);
+
           Utils.saveImageToDisk(DefaultRerouterConfig.deviceId, 'conflictedRoutes');
           if (this.rerouterConfig.debugSlackUrl !== '') {
             Utils.sendSlackMessage(
               this.rerouterConfig.debugSlackUrl,
               'Conflict Routes Report',
-              `${DefaultRerouterConfig.deviceId} just logged a conflict route image`
+              `${DefaultRerouterConfig.deviceId} just logged a conflict route image: ${JSON.stringify(matchNames)}`
             );
           }
 
-          throw new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matches)}`);
+          throw new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matchNames)}`);
         } else {
           keycode('KEYCODE_BACK', 100);
           return { matchedRoute: null, matchedPages: [] };
