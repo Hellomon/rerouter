@@ -27,6 +27,12 @@ export class Rerouter {
   private routeContext: RouteContext | null = null;
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
 
+  public reset(): void {
+    // NOTE: this is an another way that resets Rerouter, just leaving here for memory
+    // rerouterContainer.instance = new Rerouter();
+    Object.assign(this, new Rerouter());
+  }
+
   /**
    * Recalculate some value like device width or height in screenConfig
    */
@@ -53,13 +59,7 @@ export class Rerouter {
    * @param config information about how route match and route action
    */
   public addRoute(config: RouteConfig): void {
-    let existingRouteIndex = -1;
-    for (let i = 0; i < this.routes.length; i++) {
-      if (this.routes[i].path === config.path) {
-        existingRouteIndex = i;
-        break;
-      }
-    }
+    const existingRouteIndex = this.routes.findIndex(route => route.path === config.path);
 
     // If it exists, log a warning and decide what to do next
     if (existingRouteIndex !== -1) {
@@ -127,20 +127,6 @@ export class Rerouter {
     if (this.routeContext !== null) {
       this.routeContext.scriptRunning = false;
     }
-  }
-
-  public reset(): void {
-    this.log(`Rerouter reset called, trying clear all setups`);
-    this.debug = true;
-    this.defaultConfig = DefaultConfigValue;
-    this.rerouterConfig = DefaultRerouterConfig;
-    this.screenConfig = DefaultScreenConfig;
-    this.screen = new Screen(this.screenConfig);
-    this.running = false;
-    this.routes = [];
-    this.tasks = [];
-    this.routeContext = null;
-    this.unknownRouteAction = null;
   }
 
   public checkInApp(): boolean {
@@ -658,4 +644,18 @@ export class Rerouter {
   }
 }
 
+// NOTE: this is an another way that resets Rerouter, just leaving here for memory
+// const rerouterContainer = {
+//   instance: new Rerouter(),
+// };
+// import 'proxy-polyfill';
+// export const rerouter: Rerouter = new Proxy(rerouterContainer, {
+//   get: (target, prop: keyof Rerouter) => {
+//     return target.instance[prop];
+//   },
+//   set: (target, prop: keyof Rerouter, value: any) => {
+//     target.instance[prop] = value;
+//     return true;
+//   },
+// }) as any as Rerouter;
 export const rerouter = new Rerouter();
