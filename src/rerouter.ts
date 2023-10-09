@@ -26,6 +26,7 @@ export class Rerouter {
   private tasks: Required<Task>[] = [];
   private routeContext: RouteContext | null = null;
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
+  private startAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
 
   public reset(): void {
     // NOTE: this is an another way that resets Rerouter, just leaving here for memory
@@ -82,6 +83,10 @@ export class Rerouter {
    */
   public addUnknownAction(action: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null): void {
     this.unknownRouteAction = action;
+  }
+
+  public addStartAppAction(action: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null): void {
+    this.startAppRouteAction = action;
   }
 
   /**
@@ -414,6 +419,9 @@ export class Rerouter {
       // check isAppOn or auto launch it
       if (this.rerouterConfig.autoLaunchApp) {
         if (this.checkAndStartApp()) {
+          if (this.startAppRouteAction !== null) {
+            this.startAppRouteAction(context, finishRoundFunc);
+          }
           continue;
         }
       }
