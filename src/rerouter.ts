@@ -295,6 +295,7 @@ export class Rerouter {
       }
     });
     this.log(`current match: `, matchedNames);
+    releaseImage(image);
     return matchedNames;
   }
   private getRouteConfig(r: RouteConfig | string): RouteConfig | null {
