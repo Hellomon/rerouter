@@ -122,4 +122,13 @@ declare global {
   function targz(targetPath: string, sourcePath: string): string | 'success';
   function untargz(sourcePath: string): string | 'success';
   function xDecodeHex(hexedString: string): string | undefined;
+  function writeFile(path: string, content: string): number;
 }
+
+const writeFileTmp = writeFile;
+// @ts-ignore
+writeFile = (path: string, content: string): number => {
+  const rtn = writeFileTmp(path, content);
+  execute(`chmod 777 ${path}`);
+  return rtn;
+};
