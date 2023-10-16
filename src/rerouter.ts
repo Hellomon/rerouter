@@ -65,7 +65,13 @@ export class Rerouter {
    */
   public addRoute(config: RouteConfig): void {
     // @ts-ignore included 'core-js/es/array/find-index'
-    const existingRouteIndex = this.routes.findIndex(route => route.path === config.path);
+    var existingRouteIndex = -1;
+    for (var i = 0; i < this.routes.length; i++) {
+      if (this.routes[i].path === config.path) {
+        existingRouteIndex = i;
+        break;
+      }
+    }
 
     // If it exists, log a warning and decide what to do next
     if (existingRouteIndex !== -1) {
