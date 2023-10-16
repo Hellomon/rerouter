@@ -6,19 +6,15 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "clean": "rm -r ./dist || true",
-    "build": "npm run clean && tsc && babel dist --out-dir dist",
+    "build": "npm run clean && tsc",
     "prepare": "npm run build"
   },
   "author": "robotmon",
   "license": "ISC",
   "devDependencies": {
-    "@babel/cli": "^7.22.15",
-    "@babel/core": "^7.22.20",
-    "@babel/preset-env": "^7.22.20",
     "@techstark/opencv-js": "^4.7.0-release.1",
     "@types/lodash": "^4.14.191",
     "@types/node": "^20.4.8",
-    "babel-loader": "^9.1.3",
     "jimp": "^0.22.7",
     "ts-loader": "^8.0.11",
     "typescript": "^4.1.2"

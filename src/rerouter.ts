@@ -13,6 +13,7 @@ import {
 } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
+import 'core-js/es/object/assign';
 
 export class Rerouter {
   public debug: boolean = true;
