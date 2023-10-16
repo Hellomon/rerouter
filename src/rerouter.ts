@@ -13,7 +13,9 @@ import {
 } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
+
 import 'core-js/es/object/assign';
+import 'core-js/es/array/find-index';
 
 export class Rerouter {
   public debug: boolean = true;
@@ -32,6 +34,7 @@ export class Rerouter {
   public reset(): void {
     // NOTE: this is an another way that resets Rerouter, just leaving here for memory
     // rerouterContainer.instance = new Rerouter();
+    // @ts-ignore included 'core-js/es/object/assign'
     Object.assign(this, new Rerouter());
   }
 
@@ -61,6 +64,7 @@ export class Rerouter {
    * @param config information about how route match and route action
    */
   public addRoute(config: RouteConfig): void {
+    // @ts-ignore included 'core-js/es/array/find-index'
     const existingRouteIndex = this.routes.findIndex(route => route.path === config.path);
 
     // If it exists, log a warning and decide what to do next
