@@ -542,7 +542,7 @@ export class Rerouter {
             Utils.sendSlackMessage(
               this.rerouterConfig.debugSlackUrl,
               'Conflict Routes Report',
-              `${DefaultRerouterConfig.deviceId} just logged a conflict route image: ${JSON.stringify(matchNames)}`
+              `${DefaultRerouterConfig.deviceId} just logged a conflict when in Task: "${taskName}", route image: ${JSON.stringify(matchNames)}`
             );
           }
 
