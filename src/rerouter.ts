@@ -161,7 +161,15 @@ export class Rerouter {
       return;
     }
     Utils.startApp(this.rerouterConfig.packageName);
-    Utils.sleep(this.rerouterConfig.startAppDelay);
+
+    const checkInterval = 3;
+    for (let i = 0; i < this.rerouterConfig.startAppDelay; i += checkInterval * 1000) {
+      if (this.getCurrentMatchNames().length > 0) {
+        break;
+      }
+
+      Utils.sleep(checkInterval * 1000);
+    }
   }
   public stopApp(): void {
     if (!this.rerouterConfig.packageName) {
