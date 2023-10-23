@@ -537,7 +537,7 @@ export class Rerouter {
             );
           }, []);
 
-          Utils.saveImageToDisk(DefaultRerouterConfig.deviceId, 'conflictedRoutes');
+          Utils.saveImageToDisk(Utils.joinPaths(this.rerouterConfig.saveImagePath, DefaultRerouterConfig.deviceId), 'conflictedRoutes');
           if (this.rerouterConfig.debugSlackUrl !== '') {
             Utils.sendSlackMessage(
               this.rerouterConfig.debugSlackUrl,

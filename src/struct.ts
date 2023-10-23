@@ -154,6 +154,7 @@ export interface RerouterConfig {
   deviceId: string;
   strictMode: boolean;
   debugSlackUrl: string;
+  saveImagePath: string;
 }
 
 export const DefaultConfigValue: {
@@ -199,6 +200,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   deviceId: '',
   strictMode: false,
   debugSlackUrl: '',
+  saveImagePath: '/sdcard/Pictures/Screenshots/robotmon',
 };
 
 export const DefaultScreenConfig: ScreenConfig = {

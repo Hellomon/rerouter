@@ -15,8 +15,6 @@ export function log(...msgs: any[]) {
 }
 
 export class Utils {
-  static basePath = '/sdcard/Pictures/Screenshots/robotmon';
-
   public static identityColor(e1: RGB, e2: RGB) {
     const mean = (e1.r + e2.r) / 2;
     const r = e1.r - e2.r;
@@ -194,12 +192,7 @@ export class Utils {
     return num < 10 ? `0${num}` : `${num}`;
   }
 
-  public static saveImageToDisk(folderName?: string, saveReason?: string) {
-    let folderPath = this.basePath;
-    if (folderName !== undefined) {
-      folderPath = `${folderPath}/${folderName}`;
-    }
-
+  public static saveImageToDisk(folderPath: string, saveReason?: string) {
     saveReason = saveReason === undefined ? 'crash-img' : saveReason;
     const date = new Date(Utils.getTaiwanTime());
     const [YYYY, MM, dd, hh, mm, ss] = [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()].map(
@@ -214,12 +207,7 @@ export class Utils {
     releaseImage(img);
   }
 
-  public static removeOldestFilesIfExceedsLimit(folderName?: string, maxFiles: number = 100): void {
-    let folderPath = this.basePath;
-    if (folderName !== undefined) {
-      folderPath = `${folderPath}/${folderName}`;
-    }
-
+  public static removeOldestFilesIfExceedsLimit(folderPath: string, maxFiles: number = 100): void {
     const fileList = execute(`ls -l ${folderPath}`).split('\n');
 
     // Some OS return first line total 8 (Mac, redroid), some not (Memu)
@@ -247,6 +235,14 @@ export class Utils {
         execute(`rm ${folderPath}/${oldestFile.filename}`);
         Utils.log(`rm: ${folderPath}/${oldestFile.filename}`);
       }
+    }
+  }
+
+  public static joinPaths(path1: string, path2: string) {
+    if (path1.endsWith('/')) {
+      return path1 + path2;
+    } else {
+      return path1 + '/' + path2;
     }
   }
 }
