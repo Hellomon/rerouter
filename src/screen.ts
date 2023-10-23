@@ -5,7 +5,7 @@ export class Screen {
   public static debug: boolean = false;
 
   private config: ScreenConfig;
-  public logImagePath: string = '';
+  public saveImagePath: string = '';
 
   public constructor(config: ScreenConfig) {
     this.config = config;
@@ -167,13 +167,13 @@ export class Screen {
   checkAndSaveScreenshots() {
     if (DefaultRerouterConfig.deviceId !== '' && Date.now() - this.config.lastLogScreenshot > this.config.logScreenshotMinIntervalInSec * 1000) {
       this.config.lastLogScreenshot = Date.now();
-      Utils.saveImageToDisk(Utils.joinPaths(this.logImagePath, DefaultRerouterConfig.deviceId), 'log');
-      Utils.removeOldestFilesIfExceedsLimit(Utils.joinPaths(this.logImagePath, DefaultRerouterConfig.deviceId), this.config.logScreenshotMaxFiles);
+      Utils.saveImageToDisk(Utils.joinPaths(this.saveImagePath, DefaultRerouterConfig.deviceId), 'log');
+      Utils.removeOldestFilesIfExceedsLimit(Utils.joinPaths(this.saveImagePath, DefaultRerouterConfig.deviceId), this.config.logScreenshotMaxFiles);
     }
   }
 
   public getCvtDevScreenshot(): Image {
-    if (this.logImagePath !== '') {
+    if (this.saveImagePath !== '') {
       this.checkAndSaveScreenshots();
     }
 

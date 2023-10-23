@@ -57,6 +57,7 @@ export class Rerouter {
     this.log(`screenWidth: ${this.screenConfig.screenWidth}, screenHeight: ${this.screenConfig.screenHeight}`);
     // new screen if screen config changed
     this.screen = new Screen(this.screenConfig);
+    this.screen.saveImagePath = this.rerouterConfig.saveImagePath;
   }
 
   /**
