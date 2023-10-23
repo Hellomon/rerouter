@@ -239,7 +239,7 @@ export class Utils {
   }
 
   public static joinPaths(path1: string, path2: string) {
-    if (path1.endsWith('/')) {
+    if (path1.charAt(path1.length - 1) === '/') {
       return path1 + path2;
     } else {
       return path1 + '/' + path2;
