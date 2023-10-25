@@ -55,9 +55,9 @@ export class Rerouter {
     this.screenConfig.screenWidth = this.screenConfig.screenWidth || dWidth;
     this.screenConfig.screenHeight = this.screenConfig.screenHeight || dHeight;
     this.log(`screenWidth: ${this.screenConfig.screenWidth}, screenHeight: ${this.screenConfig.screenHeight}`);
+    this.screenConfig.logScreenshotFolder = Utils.joinPaths(this.rerouterConfig.saveImageRoot, this.rerouterConfig.deviceId);
     // new screen if screen config changed
     this.screen = new Screen(this.screenConfig);
-    this.screen.saveImagePath = this.rerouterConfig.saveImagePath;
   }
 
   /**
@@ -538,12 +538,12 @@ export class Rerouter {
             );
           }, []);
 
-          Utils.saveScreenshotToDisk(Utils.joinPaths(this.rerouterConfig.saveImagePath, DefaultRerouterConfig.deviceId), 'conflictedRoutes');
+          Utils.saveScreenshotToDisk(this.rerouterConfig.saveImageRoot, `${DefaultRerouterConfig.deviceId}_conflictedRoutes`);
           if (this.rerouterConfig.debugSlackUrl !== '') {
             Utils.sendSlackMessage(
               this.rerouterConfig.debugSlackUrl,
               'Conflict Routes Report',
-              `${DefaultRerouterConfig.deviceId} just logged a conflict when in Task: "${taskName}", route image: ${JSON.stringify(matchNames)}`
+              `${DefaultRerouterConfig.deviceId} just logged a route conflict when in Task: "${taskName}", names: ${JSON.stringify(matchNames)}`
             );
           }
 

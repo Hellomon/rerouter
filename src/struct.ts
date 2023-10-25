@@ -140,9 +140,10 @@ export interface ScreenConfig {
   screenOffsetY: number; // developer calculated
   actionDuring: number; // FPS, should > frame ms
   rotation: 'vertical' | 'horizontal';
-  lastLogScreenshot: number;
+  logScreenshotLastTime: number;
   logScreenshotMinIntervalInSec: number;
   logScreenshotMaxFiles: number;
+  logScreenshotFolder: string;
 }
 
 export interface RerouterConfig {
@@ -154,7 +155,7 @@ export interface RerouterConfig {
   deviceId: string;
   strictMode: boolean;
   debugSlackUrl: string;
-  saveImagePath: string;
+  saveImageRoot: string;
 }
 
 export const DefaultConfigValue: {
@@ -200,7 +201,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   deviceId: '',
   strictMode: false,
   debugSlackUrl: '',
-  saveImagePath: '/sdcard/Pictures/Screenshots/robotmon',
+  saveImageRoot: '/sdcard/Pictures/Screenshots/robotmon',
 };
 
 export const DefaultScreenConfig: ScreenConfig = {
@@ -214,7 +215,8 @@ export const DefaultScreenConfig: ScreenConfig = {
   screenOffsetY: 0,
   actionDuring: 180,
   rotation: 'horizontal',
-  lastLogScreenshot: 0,
+  logScreenshotLastTime: 0,
   logScreenshotMinIntervalInSec: 10,
   logScreenshotMaxFiles: 100,
+  logScreenshotFolder: '',
 };
