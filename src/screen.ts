@@ -167,7 +167,7 @@ export class Screen {
   checkAndSaveScreenshots() {
     if (DefaultRerouterConfig.deviceId !== '' && Date.now() - this.config.lastLogScreenshot > this.config.logScreenshotMinIntervalInSec * 1000) {
       this.config.lastLogScreenshot = Date.now();
-      Utils.saveImageToDisk(Utils.joinPaths(this.saveImagePath, DefaultRerouterConfig.deviceId), 'log');
+      Utils.saveScreenshotToDisk(Utils.joinPaths(this.saveImagePath, DefaultRerouterConfig.deviceId), 'log');
       Utils.removeOldestFilesIfExceedsLimit(Utils.joinPaths(this.saveImagePath, DefaultRerouterConfig.deviceId), this.config.logScreenshotMaxFiles);
     }
   }

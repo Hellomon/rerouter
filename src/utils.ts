@@ -192,7 +192,7 @@ export class Utils {
     return num < 10 ? `0${num}` : `${num}`;
   }
 
-  public static saveImageToDisk(folderPath: string, saveReason?: string) {
+  public static saveScreenshotToDisk(folderPath: string, saveReason?: string) {
     saveReason = saveReason === undefined ? 'crash-img' : saveReason;
     const date = new Date(Utils.getTaiwanTime());
     const [YYYY, MM, dd, hh, mm, ss] = [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()].map(
