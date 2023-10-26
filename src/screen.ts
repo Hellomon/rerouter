@@ -164,7 +164,7 @@ export class Screen {
   }
 
   checkAndSaveScreenshots() {
-    if (Date.now() - this.config.logScreenshotLastTime > this.config.logScreenshotMinIntervalInSec * 1000) {
+    if (this.config.logScreenshotFolder !== '' && Date.now() - this.config.logScreenshotLastTime > this.config.logScreenshotMinIntervalInSec * 1000) {
       this.config.logScreenshotLastTime = Date.now();
       Utils.saveScreenshotToDisk(this.config.logScreenshotFolder, 'log');
       Utils.removeOldestFilesIfExceedsLimit(this.config.logScreenshotFolder, this.config.logScreenshotMaxFiles);
@@ -172,9 +172,7 @@ export class Screen {
   }
 
   public getCvtDevScreenshot(): Image {
-    if (this.config.logScreenshotFolder !== '') {
-      this.checkAndSaveScreenshots();
-    }
+    this.checkAndSaveScreenshots();
 
     return getScreenshotModify(
       this.config.screenOffsetX,
