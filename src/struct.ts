@@ -105,7 +105,9 @@ export interface TaskConfig {
   maxTaskDuring?: number;
   minRoundInterval?: number;
   /**
-   * If enable it and task run time > maxTaskDuring, Rerouter will stop the task and do next task
+   * Determines the behavior when a task's execution time exceeds maxTaskDuring.
+   * If this option is set to true, Rerouter will forcefully stop the current task and immediately start the next one once the task's execution time exceeds maxTaskDuring.
+   * If this option is set to false or not set, Rerouter will allow the current task to continue running until completion, even if its execution time exceeds maxTaskDuring, before starting the next task.
    */
   forceStop?: boolean;
   /**
