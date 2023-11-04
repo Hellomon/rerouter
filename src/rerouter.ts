@@ -547,7 +547,6 @@ export class Rerouter {
 
           throw new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matchNames)}`);
         } else {
-          keycode('KEYCODE_BACK', 100);
           return { matchedRoute: null, matchedPages: [] };
         }
     }
