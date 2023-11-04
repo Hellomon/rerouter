@@ -529,29 +529,29 @@ export class Rerouter {
       case 1:
         return matches[0];
       default:
-        if (this.rerouterConfig.strictMode) {
-          let matchNames = matches.reduce(function (acc: string[], item) {
-            return acc.concat(
-              item.matchedPages.map(function (page) {
-                return page.name;
-              })
-            );
-          }, []);
-
-          Utils.saveScreenshotToDisk(this.rerouterConfig.saveImageRoot, `${DefaultRerouterConfig.deviceId}_conflictedRoutes`);
-          if (this.rerouterConfig.debugSlackUrl !== '') {
-            Utils.sendSlackMessage(
-              this.rerouterConfig.debugSlackUrl,
-              'Conflict Routes Report',
-              `${DefaultRerouterConfig.deviceId} just logged a route conflict when in Task: "${taskName}", names: ${JSON.stringify(matchNames)}`
-            );
-          }
-
-          throw new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matchNames)}`);
-        } else {
-          keycode('KEYCODE_BACK', 100);
-          return { matchedRoute: null, matchedPages: [] };
+        if (!this.rerouterConfig.strictMode) {
+          return matches[0];
         }
+
+        // handle conflict routes for strict mode
+        let matchNames = matches.reduce(function (acc: string[], item) {
+          return acc.concat(
+            item.matchedPages.map(function (page) {
+              return page.name;
+            })
+          );
+        }, []);
+
+        Utils.saveScreenshotToDisk(this.rerouterConfig.saveImageRoot, `${DefaultRerouterConfig.deviceId}_conflictedRoutes`);
+        if (this.rerouterConfig.debugSlackUrl !== '') {
+          Utils.sendSlackMessage(
+            this.rerouterConfig.debugSlackUrl,
+            'Conflict Routes Report',
+            `${DefaultRerouterConfig.deviceId} just logged a route conflict when in Task: "${taskName}", names: ${JSON.stringify(matchNames)}`
+          );
+        }
+
+        throw new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matchNames)}`);
     }
   }
 
