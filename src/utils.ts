@@ -239,10 +239,8 @@ export class Utils {
   }
 
   public static joinPaths(path1: string, path2: string) {
-    if (path1.charAt(path1.length - 1) === '/') {
-      return path1 + path2;
-    } else {
-      return path1 + '/' + path2;
-    }
+    const normalizedPath1 = path1.endsWith('/') ? path1.slice(0, -1) : path1;
+    const normalizedPath2 = path2.startsWith('/') ? path2.slice(1) : path2;
+    return normalizedPath1 + '/' + normalizedPath2;
   }
 }
