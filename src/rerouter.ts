@@ -25,6 +25,7 @@ export class Rerouter {
   public screen: Screen = new Screen(this.screenConfig);
 
   private running: boolean = false;
+  private routeConflictRecord: number[] = [];
   private routes: Required<RouteConfig>[] = [];
   private tasks: Required<Task>[] = [];
   private routeContext: RouteContext | null = null;
@@ -435,7 +436,10 @@ export class Rerouter {
 
       const rotation = this.screen.getRotation();
       const image = this.screen.getCvtDevScreenshot();
-      const { matchedRoute, matchedPages } = this.findMatchedRouteImpl(task.name, image, rotation);
+
+      const matches = this.findMatchedRouteImpl(task.name, image, rotation);
+      const matchedRoute: Required<RouteConfig> = matches[0]?.matchedRoute;
+      const matchedPages: Page[] = matches[0]?.matchedPages;
 
       // context.matchStartTS = 0 if init run
       context.matchStartTS = context.matchStartTS || now;
@@ -449,12 +453,25 @@ export class Rerouter {
       context.matchDuring = now - context.matchStartTS;
       context.matchTimes++;
 
-      if (matchedRoute === null) {
-        if (this.unknownRouteAction !== null) {
-          this.unknownRouteAction(context, image, finishRoundFunc);
-        }
-      } else {
-        this.doActionForRoute(context, image, matchedRoute, matchedPages, finishRoundFunc);
+      switch (matches.length) {
+        case 0:
+          // no match
+          if (this.unknownRouteAction !== null) {
+            this.unknownRouteAction(context, image, finishRoundFunc);
+          }
+          break;
+        case 1:
+          // perfect match 1
+          this.doActionForRoute(context, image, matchedRoute, matchedPages, finishRoundFunc);
+          break;
+        default:
+          // conflict
+          const error = this.handleConflictRoutes(task.name, image, matches, finishRoundFunc);
+          if (error) {
+            releaseImage(image);
+            throw error;
+          }
+          break;
       }
 
       // update lastMatchedPath after action done
@@ -503,11 +520,11 @@ export class Rerouter {
     image: Image,
     rotation: 'vertical' | 'horizontal'
   ): {
-    matchedRoute: Required<RouteConfig> | null;
+    matchedRoute: Required<RouteConfig>;
     matchedPages: Page[];
-  } {
+  }[] {
     const matches: {
-      matchedRoute: Required<RouteConfig> | null;
+      matchedRoute: Required<RouteConfig>;
       matchedPages: Page[];
     }[] = [];
 
@@ -522,34 +539,52 @@ export class Rerouter {
         matches.push({ matchedRoute: route, matchedPages });
       }
     }
+    return matches;
+  }
 
-    switch (matches.length) {
-      case 0:
-        return { matchedRoute: null, matchedPages: [] };
-      case 1:
-        return matches[0];
-      default:
-        const matchNames = matches.reduce(function (acc: string[], item) {
-          return acc.concat(
-            item.matchedPages.map(function (page) {
-              return page.name;
-            })
-          );
-        }, []);
-        const warningMsg = `a route conflict when in Task: "${taskName}", names: ${JSON.stringify(matchNames)}`;
-        this.warning(warningMsg);
+  private handleConflictRoutes(
+    taskName: string,
+    image: Image,
+    matches: { matchedRoute: Required<RouteConfig> | null; matchedPages: Page[] }[],
+    finishRound: (exitTask?: boolean) => void
+  ): Error | undefined {
+    const matchNames = matches.reduce(function (acc: string[], item) {
+      return acc.concat(
+        item.matchedPages.map(function (page) {
+          return page.name;
+        })
+      );
+    }, []);
+    const warningMsg = `a route conflict when in Task: "${taskName}", names: ${JSON.stringify(matchNames)}`;
+    this.warning(warningMsg);
 
-        if (this.rerouterConfig.strictMode) {
-          Utils.saveScreenshotToDisk(this.rerouterConfig.saveImageRoot, `${DefaultRerouterConfig.deviceId}_conflictedRoutes`);
-          if (this.rerouterConfig.debugSlackUrl !== '') {
-            Utils.sendSlackMessage(this.rerouterConfig.debugSlackUrl, 'Conflict Routes Report', `${DefaultRerouterConfig.deviceId} just logged ${warningMsg}`);
-          }
-
-          throw new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matchNames)}`);
-        } else {
-          return { matchedRoute: null, matchedPages: [] };
-        }
+    if (this.rerouterConfig.strictMode) {
+      // TODO: save image rather than take another screenshot
+      Utils.saveScreenshotToDisk(this.rerouterConfig.saveImageRoot, `${DefaultRerouterConfig.deviceId}_conflictedRoutes`);
+      if (this.rerouterConfig.debugSlackUrl !== '') {
+        Utils.sendSlackMessage(this.rerouterConfig.debugSlackUrl, 'Conflict Routes Report', `${DefaultRerouterConfig.deviceId} just logged ${warningMsg}`);
+      }
+      return new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matchNames)}`);
     }
+
+    // default handle conflict routes in non-strict mode
+    this.log(`try handle conflict`);
+    finishRound(true);
+
+    const now = Date.now();
+    this.routeConflictRecord.push(now);
+    const duringLimit = 60 * 1_000;
+    const countsLimit = 5;
+    while (this.routeConflictRecord.length > 0 && now - this.routeConflictRecord[0] > duringLimit) {
+      this.routeConflictRecord.shift();
+    }
+    if (this.routeConflictRecord.length >= countsLimit) {
+      this.routeConflictRecord = [now];
+      this.restartApp();
+      return;
+    }
+
+    keycode('BACK', this.screenConfig.actionDuring);
   }
 
   private isMatchRouteImpl(
