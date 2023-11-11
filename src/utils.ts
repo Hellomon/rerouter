@@ -239,6 +239,10 @@ export class Utils {
   }
 
   public static joinPaths(path1: string, path2: string) {
+    if (path2 === '') {
+      return path1;
+    }
+
     if (path1.charAt(path1.length - 1) === '/') {
       return path1 + path2;
     } else {
