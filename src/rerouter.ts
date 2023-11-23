@@ -548,14 +548,15 @@ export class Rerouter {
     matches: { matchedRoute: Required<RouteConfig> | null; matchedPages: Page[] }[],
     finishRound: (exitTask?: boolean) => void
   ): Error | undefined {
-    const matchNames = matches.reduce(function (acc: string[], item) {
-      return acc.concat(
-        item.matchedPages.map(function (page) {
-          return page.name;
-        })
-      );
-    }, []);
-    const warningMsg = `a route conflict when in Task: "${taskName}", names: ${JSON.stringify(matchNames)}`;
+    const matchDetails = matches
+      .map(item => {
+        const path = item.matchedRoute?.path || 'emptyRoutePath';
+        const pages = item.matchedPages.map(p => p.name);
+        return `${path}: (${pages.join(', ')})`;
+      })
+      .join('\n');
+
+    const warningMsg = `a route conflict when in Task: "${taskName}", details: \n${matchDetails}`;
     this.warning(warningMsg);
 
     if (this.rerouterConfig.strictMode) {
@@ -564,7 +565,7 @@ export class Rerouter {
       if (this.rerouterConfig.debugSlackUrl !== '') {
         Utils.sendSlackMessage(this.rerouterConfig.debugSlackUrl, 'Conflict Routes Report', `${DefaultRerouterConfig.deviceId} just logged ${warningMsg}`);
       }
-      return new Error(`Intentional crash due to multiple route applied to current screen: ${JSON.stringify(matchNames)}`);
+      return new Error(`Intentional crash due to multiple route applied to current screen: ${matchDetails}`);
     }
 
     // default handle conflict routes in non-strict mode
