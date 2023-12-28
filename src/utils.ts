@@ -249,4 +249,36 @@ export class Utils {
       return path1 + '/' + path2;
     }
   }
+
+  public static savePointsMarkedImage({
+    image,
+    name,
+    points,
+    folderPath,
+    rgba,
+  }: {
+    image: Image;
+    name: string;
+    points: { x: number; y: number }[];
+    folderPath: string;
+    rgba?: { r: number; g: number; b: number; a: number };
+  }) {
+    const filepath = `${folderPath}/${name}.png`;
+
+    // if file exists, skip
+    const res = execute(`test -e ${filepath} && echo 1`);
+    if (res === '1') {
+      return;
+    }
+    const clonedImg = clone(image);
+    const { r, g, b, a } = rgba || { r: 255, g: 0, b: 0, a: 255 };
+    const radius = 3;
+    for (const i in points) {
+      const { x, y } = points[i];
+      drawCircle(clonedImg, x, y, radius, r, g, b, a);
+    }
+    saveImage(clonedImg, filepath);
+    releaseImage(clonedImg);
+    console.log(`[savePointsMarkedImage]: ${name}`);
+  }
 }
