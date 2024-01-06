@@ -156,6 +156,11 @@ export interface RerouterConfig {
   testingScreenshotPath: string;
   deviceId: string;
   strictMode: boolean;
+  savePageReference?: {
+    enable: boolean;
+    folderPath: string;
+    rgba?: { r: number; g: number; b: number; a: number };
+  };
   debugSlackUrl: string;
   saveImageRoot: string;
 }
