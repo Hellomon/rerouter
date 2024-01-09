@@ -648,9 +648,10 @@ export class Rerouter {
     for (let i = 0; isSame && i < page.points.length; i++) {
       const point = page.points[i];
       const thres = point.thres ?? pageThres ?? parentThres;
+      const shouldMatch = point.match ?? true;
       const color = getImageColor(image, point.x, point.y);
       const score = Utils.identityColor(point, color);
-      const isPointColorMatch = score >= thres;
+      const isPointColorMatch = (score >= thres) === shouldMatch;
       if (!isPointColorMatch) {
         isSame = false;
         this.logImpl(
