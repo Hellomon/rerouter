@@ -641,12 +641,13 @@ export class Rerouter {
   }
 
   private isMatchPageImpl(image: Image, page: Page, parentThres: number, debug: boolean): boolean {
-    const thres = page.thres ?? parentThres;
+    const pageThres = page.thres;
     let isSame = true;
     this.logImpl(debug, `checkMatchPage[${page.name}]`);
 
-    for (let i = 0; i < page.points.length; i++) {
+    for (let i = 0; isSame && i < page.points.length; i++) {
       const point = page.points[i];
+      const thres = point.thres ?? pageThres ?? parentThres;
       const color = getImageColor(image, point.x, point.y);
       const score = Utils.identityColor(point, color);
       const isPointColorMatch = score >= thres;
@@ -658,7 +659,6 @@ export class Rerouter {
           `expect: ${Utils.formatXYRGB(point)}\n`,
           `   get: ${Utils.formatXYRGB({ ...color, x: point.x, y: point.y })}`
         );
-        break;
       }
     }
 
