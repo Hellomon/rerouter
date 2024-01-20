@@ -145,6 +145,15 @@ export class Screen {
     return false;
   }
 
+  public isSameColorImage(devColorPoint: XYRGB, image: Image, thres: number = 0.9) {
+    const rgb = getImageColor(image, devColorPoint.x, devColorPoint.y);
+    const score = Utils.identityColor(rgb, devColorPoint);
+    if (score > thres) {
+      return true;
+    }
+    return false;
+  }
+
   // currently real device screenshot
   public getDeviceScreenshot(): Image {
     return getScreenshot();
