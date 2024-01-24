@@ -18,6 +18,8 @@ export interface XYRGB {
   g: number;
   b: number;
   thres?: number;
+  /** Set to false when the defined RGB should **not** match the actual point. If no value is set, `true` is assumed. */
+  match?: boolean;
 }
 
 export class Page {
