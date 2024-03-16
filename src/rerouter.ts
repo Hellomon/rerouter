@@ -566,12 +566,13 @@ export class Rerouter {
     const warningMsg = `a route conflict when in Task: "${taskName}", details: \n${matchDetails}`;
     this.warning(warningMsg);
 
+    if (this.rerouterConfig.debugSlackUrl !== '') {
+      Utils.sendSlackMessage(this.rerouterConfig.debugSlackUrl, 'Conflict Routes Report', `${DefaultRerouterConfig.deviceId} just logged ${warningMsg}`);
+    }
+
     if (this.rerouterConfig.strictMode) {
       // TODO: save image rather than take another screenshot
       Utils.saveScreenshotToDisk(this.rerouterConfig.saveImageRoot, `${DefaultRerouterConfig.deviceId}_conflictedRoutes`);
-      if (this.rerouterConfig.debugSlackUrl !== '') {
-        Utils.sendSlackMessage(this.rerouterConfig.debugSlackUrl, 'Conflict Routes Report', `${DefaultRerouterConfig.deviceId} just logged ${warningMsg}`);
-      }
       return new Error(`Intentional crash due to multiple route applied to current screen: ${matchDetails}`);
     }
 
@@ -651,7 +652,7 @@ export class Rerouter {
       const shouldMatch = point.match ?? true;
       const color = getImageColor(image, point.x, point.y);
       const score = Utils.identityColor(point, color);
-      const isPointColorMatch = (score >= thres) === shouldMatch;
+      const isPointColorMatch = score >= thres === shouldMatch;
       if (!isPointColorMatch) {
         isSame = false;
         this.logImpl(
