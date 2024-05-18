@@ -468,6 +468,10 @@ export class Rerouter {
           break;
         case 1:
           // perfect match 1
+          if (this.rerouterConfig.saveMatchedScreen) {
+            Utils.saveScreenshotToDisk(`${this.rerouterConfig.saveImageRoot}/matched`, `${matches[0].matchedRoute.path}`, false);
+          }
+
           this.doActionForRoute(context, image, matchedRoute, matchedPages, finishRoundFunc);
           break;
         default:

@@ -165,6 +165,7 @@ export interface RerouterConfig {
   };
   debugSlackUrl: string;
   saveImageRoot: string;
+  saveMatchedScreen: boolean;
 }
 
 export const DefaultConfigValue: {
@@ -211,6 +212,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   strictMode: false,
   debugSlackUrl: '',
   saveImageRoot: '/sdcard/Pictures/Screenshots/robotmon',
+  saveMatchedScreen: false,
 };
 
 export const DefaultScreenConfig: ScreenConfig = {
