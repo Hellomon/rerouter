@@ -91,6 +91,14 @@ export class Rerouter {
   }
 
   /**
+   * Gets a copy of all route configurations to prevent external modifications.
+   * @returns an array of RouteConfig
+   */
+  public getRoutes(): RouteConfig[] {
+    return this.routes.slice(); // Return a copy of the routes array to prevent modifications
+  }
+
+  /**
    * Tell Rerouter what to do if not matching any route
    * @param action function to do if not matching
    */
