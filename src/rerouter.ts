@@ -477,7 +477,7 @@ export class Rerouter {
         case 1:
           // perfect match 1
           if (this.rerouterConfig.saveMatchedScreen) {
-            Utils.saveScreenshotToDisk(`${this.rerouterConfig.saveImageRoot}/matched`, `${matches[0].matchedRoute.path}`, false);
+            Utils.saveScreenshotToDisk(`${this.rerouterConfig.saveImageRoot}/matched`, `${matches[0].matchedRoute.path}`, false, image);
           }
 
           this.doActionForRoute(context, image, matchedRoute, matchedPages, finishRoundFunc);
