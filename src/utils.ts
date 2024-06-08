@@ -192,7 +192,7 @@ export class Utils {
     return num < 10 ? `0${num}` : `${num}`;
   }
 
-  public static saveScreenshotToDisk(folderPath: string, suffix: string = '', timestamp: boolean = true) {
+  public static saveScreenshotToDisk(folderPath: string, suffix: string = '', timestamp: boolean = true, img: Image = undefined) {
     const date = new Date(Utils.getTaiwanTime());
     const [YYYY, MM, dd, hh, mm, ss] = [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()].map(
       item => this.padZero(item)
@@ -203,11 +203,15 @@ export class Utils {
       filename = `${YYYY}-${MM}-${dd}T${hh}.${mm}.${ss}_${suffix}.png`;
     }
 
-    var img = getScreenshot();
-    saveImage(img, `${folderPath}/${filename}`);
-    Utils.log(`Write to file: ${folderPath}/${filename}`);
+    if (img !== undefined) {
+      saveImage(img, `${folderPath}/${filename}`);
+    } else {
+      img = getScreenshot();
+      saveImage(img, `${folderPath}/${filename}`);
+      releaseImage(img);
+    }
 
-    releaseImage(img);
+    Utils.log(`Write to file: ${folderPath}/${filename}`);
   }
 
   public static removeOldestFilesIfExceedsLimit(folderPath: string, maxFiles: number = 100): void {
