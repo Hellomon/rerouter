@@ -1,4 +1,4 @@
-import { rerouter } from './rerouter';
+import { CounterConfig, DefaultCounterConfig } from './struct';
 
 export function log(...msgs: any[]) {
   const date = new Date().toLocaleString('en-US', {
@@ -290,6 +290,19 @@ export class Utils {
     releaseImage(clonedImg);
     console.log(`[savePointsMarkedImage]: ${name}`);
   }
+}
+
+// Usage:
+// Counter.counterConfig = {
+//   userId: this.config.userId,
+//   licenseId: this.config.deviceId,
+//   deviceId: this.config.licenseId,
+//   ga4Url: 'https://www.google-analytics.com/mp/collect?measurement_id=G-1J3WHD2SDV&api_secret=bE8-LEC6REuSDW_G3Mt87Q',
+// };
+// Counter.sendCounter(taskName, finishedPageName, furthurInfo);
+
+export class Counter {
+  public static counterConfig: CounterConfig = DefaultCounterConfig;
 
   public static assign<T>(target: T, source: Partial<T>): T {
     for (const key in source) {
@@ -306,7 +319,7 @@ export class Utils {
     const stringHour = (eventHour < 10 ? '0' : '') + eventHour;
 
     const body = {
-      client_id: rerouter.rerouterConfig.licenseId, // MUST ASSIGN for GA4, else will fail to collect this data
+      client_id: this.counterConfig.licenseId, // MUST ASSIGN for GA4, else will fail to collect this data
       timestamp_micros: Date.now() * 1000,
       events: [
         {
@@ -317,9 +330,9 @@ export class Utils {
               rerouter_task: eventTitle,
               event_hour: stringHour,
               engagement_time_msec: 100,
-              license_id: rerouter.rerouterConfig.licenseId,
-              xr_user_id: rerouter.rerouterConfig.userId,
-              device_id: rerouter.rerouterConfig.deviceId,
+              license_id: this.counterConfig.licenseId,
+              xr_user_id: this.counterConfig.userId,
+              device_id: this.counterConfig.deviceId,
             },
             furthurInfo
           ),
@@ -327,13 +340,9 @@ export class Utils {
       ],
     };
 
-    httpClient('POST', rerouter.rerouterConfig.ga4Url, JSON.stringify(body), {
+    httpClient('POST', this.counterConfig.ga4Url, JSON.stringify(body), {
       'Content-Type': 'application/json',
     });
-    this.log(
-      `Sending counter with ${rerouter.rerouterConfig.deviceId}, ${rerouter.rerouterConfig.licenseId}, ${JSON.stringify(
-        body
-      )}, task: ${eventTitle}, page: ${eventPageName}`
-    );
+    Utils.log(`Sending counter with ${JSON.stringify(this.counterConfig)}, ${JSON.stringify(body)}, task: ${eventTitle}, page: ${eventPageName}`);
   }
 }
