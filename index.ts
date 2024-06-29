@@ -98,7 +98,7 @@ declare global {
   function getImageFromBase64(string: string): Image;
   function httpClient(method: string, url: string, body: string, headers: { [key: string]: string }): string;
   function getUserPlan(): string | undefined;
-  function s3UploadFile(
+  var s3UploadFile: (
     filepath: string,
     objectName: string,
     contentType: string,
@@ -107,9 +107,13 @@ declare global {
     keyId: string,
     accessKey: string,
     token: string,
-    ssl: boolean
-  ): number | string;
-  function s3DownloadFile(
+    ssl: boolean,
+
+    // fake optional parameters
+    retry?: number,
+    retryInterval?: number
+  ) => number | string;
+  var s3DownloadFile: (
     filepath: string,
     objectName: string,
     endpoint: string,
@@ -117,8 +121,12 @@ declare global {
     keyId: string,
     accessKey: string,
     token: string,
-    ssl: boolean
-  ): true | string;
+    ssl: boolean,
+
+    // fake optional parameters
+    retry?: number,
+    retryInterval?: number
+  ) => true | string;
   function targz(targetPath: string, sourcePath: string): string | 'success';
   function untargz(sourcePath: string): string | 'success';
   function xDecodeHex(hexedString: string): string | undefined;
@@ -134,4 +142,65 @@ if (typeof writeFile === 'function') {
   };
 } else {
   console.log('writeFile is not defined');
+}
+
+if (typeof s3UploadFile === 'function') {
+  const s3UploadFileTmp = s3UploadFile;
+  s3UploadFile = (
+    filepath: string,
+    objectName: string,
+    contentType: string,
+    endpoint: string,
+    bucket: string,
+    keyId: string,
+    accessKey: string,
+    token: string,
+    ssl: boolean,
+    retry: number = 3,
+    retryInterval: number = 10_000
+  ): number | string => {
+    let sizeOrErrorMsg: number | string = '';
+    for (let r = 0; r < retry; r++) {
+      if (r > 0) {
+        sleep(retryInterval);
+      }
+      sizeOrErrorMsg = s3UploadFileTmp(filepath, objectName, contentType, endpoint, bucket, keyId, accessKey, token, ssl);
+      if (typeof sizeOrErrorMsg === 'number') {
+        break;
+      }
+    }
+    return sizeOrErrorMsg;
+  };
+}
+
+if (typeof s3DownloadFile === 'function') {
+  const s3DownloadFileTmp = s3DownloadFile;
+  s3DownloadFile = (
+    filepath: string,
+    objectName: string,
+    endpoint: string,
+    bucket: string,
+    keyId: string,
+    accessKey: string,
+    token: string,
+    ssl: boolean,
+    retry: number = 3,
+    retryInterval: number = 10_000
+  ): true | string => {
+    const fileNotExistedMsg = 'The specified key does not exist.';
+    let successOrErrorMsg: true | string = '';
+    for (let r = 0; r < retry; r++) {
+      if (r > 0) {
+        sleep(retryInterval);
+      }
+      successOrErrorMsg = s3DownloadFileTmp(filepath, objectName, endpoint, bucket, keyId, accessKey, token, ssl);
+      if (successOrErrorMsg === true) {
+        break;
+      }
+      if (successOrErrorMsg === fileNotExistedMsg) {
+        break;
+      }
+    }
+    return successOrErrorMsg;
+  };
 }
