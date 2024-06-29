@@ -297,7 +297,7 @@ export class Utils {
 //   userId: this.config.userId,
 //   licenseId: this.config.deviceId,
 //   deviceId: this.config.licenseId,
-//   ga4Url: 'https://www.google-analytics.com/mp/collect?measurement_id=G-1J3WHD2SDV&api_secret=bE8-LEC6REuSDW_G3Mt87Q',
+//   ga4Url: 'https://www.google-analytics.com/mp/collect?measurement_id=G-XXXXXXXXXX&api_secret=bXX-XXXXXXXXXX_XXXXXXX',
 // };
 // Counter.sendCounter(taskName, finishedPageName, furthurInfo);
 
