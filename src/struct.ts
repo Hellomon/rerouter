@@ -156,10 +156,7 @@ export interface RerouterConfig {
   startAppDelay: number;
   autoLaunchApp: boolean;
   testingScreenshotPath: string;
-  userId: string;
   deviceId: string;
-  licenseId: string;
-  ga4Url: string; // for sending counter to GA4, sample: sample: https://www.google-analytics.com/mp/collect?measurement_id=G-XXXXXXXXXX&api_secret=bXX-XXXXXXXXXX_XXXXXXX
   strictMode: boolean;
   savePageReference?: {
     enable: boolean;
@@ -170,6 +167,19 @@ export interface RerouterConfig {
   saveImageRoot: string;
   saveMatchedScreen: boolean;
 }
+
+export interface CounterConfig {
+  userId: string;
+  licenseId: string;
+  deviceId: string;
+  ga4Url: string; // for sending counter to GA4, sample: sample: https://www.google-analytics.com/mp/collect?measurement_id=G-XXXXXXXXXX&api_secret=bXX-XXXXXXXXXX_XXXXXXX
+}
+export const DefaultCounterConfig: CounterConfig = {
+  userId: '',
+  licenseId: '',
+  deviceId: '',
+  ga4Url: '', // for sending counter to GA4, sample: sample: https://www.google-analytics.com/mp/collect?measurement_id=G-XXXXXXXXXX&api_secret=bXX-XXXXXXXXXX_XXXXXXX
+};
 
 export const DefaultConfigValue: {
   XYRGBThres: number;
@@ -211,10 +221,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   startAppDelay: 6000,
   autoLaunchApp: true,
   testingScreenshotPath: './screenshot',
-  userId: '',
   deviceId: '',
-  licenseId: '',
-  ga4Url: '',
   strictMode: false,
   debugSlackUrl: '',
   saveImageRoot: '/sdcard/Pictures/Screenshots/robotmon',
