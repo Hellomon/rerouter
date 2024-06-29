@@ -1,3 +1,5 @@
+import { rerouter } from './rerouter';
+
 export function log(...msgs: any[]) {
   const date = new Date().toLocaleString('en-US', {
     timeZone: 'Asia/Taipei',
@@ -287,5 +289,51 @@ export class Utils {
     saveImage(clonedImg, filepath);
     releaseImage(clonedImg);
     console.log(`[savePointsMarkedImage]: ${name}`);
+  }
+
+  public static assign<T>(target: T, source: Partial<T>): T {
+    for (const key in source) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        target[key] = source[key] as any;
+      }
+    }
+    return target;
+  }
+
+  // reference: https://ga-dev-tools.google/ga4/event-builder/, https://developers.google.com/analytics/devguides/collection/protocol/ga4/sending-events?client_type=gtag#send_an_event
+  public static sendCounter(eventTitle: string, eventPageName: string, furthurInfo: object) {
+    const eventHour = new Date().getHours();
+    const stringHour = (eventHour < 10 ? '0' : '') + eventHour;
+
+    const body = {
+      client_id: rerouter.rerouterConfig.licenseId, // MUST ASSIGN for GA4, else will fail to collect this data
+      timestamp_micros: Date.now() * 1000,
+      events: [
+        {
+          name: eventTitle,
+          params: this.assign(
+            {
+              rerouter_page: eventPageName,
+              rerouter_task: eventTitle,
+              event_hour: stringHour,
+              engagement_time_msec: 100,
+              license_id: rerouter.rerouterConfig.licenseId,
+              xr_user_id: rerouter.rerouterConfig.userId,
+              device_id: rerouter.rerouterConfig.deviceId,
+            },
+            furthurInfo
+          ),
+        },
+      ],
+    };
+
+    httpClient('POST', rerouter.rerouterConfig.ga4Url, JSON.stringify(body), {
+      'Content-Type': 'application/json',
+    });
+    this.log(
+      `Sending counter with ${rerouter.rerouterConfig.deviceId}, ${rerouter.rerouterConfig.licenseId}, ${JSON.stringify(
+        body
+      )}, task: ${eventTitle}, page: ${eventPageName}`
+    );
   }
 }
