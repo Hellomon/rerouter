@@ -13,6 +13,7 @@ import {
 } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
+import { ThirdPartyUtils } from './thirdPartyUtils';
 
 import 'core-js/es/object/assign';
 import 'core-js/es/array/find-index';
@@ -319,6 +320,18 @@ export class Rerouter {
     releaseImage(image);
     return matchedNames;
   }
+
+  // TODO: send slack message
+  public sendGA4Event(body: Parameters<typeof ThirdPartyUtils.sendGA4Event>[2]): void {
+    if (!this.rerouterConfig.ga4Config) {
+      this.warning(`sendGA4Event failed, ga4MeasurementId or ga4ApiSecret not set`);
+      return;
+    }
+    const { measurementId, apiSecret } = this.rerouterConfig.ga4Config;
+    ThirdPartyUtils.sendGA4Event(measurementId, apiSecret, body);
+    Utils.log(`sendGA4Event: ${JSON.stringify(body, null, 2)}`);
+  }
+
   private getRouteConfig(r: RouteConfig | string): RouteConfig | null {
     let route: RouteConfig | null;
     if (typeof r === 'string') {

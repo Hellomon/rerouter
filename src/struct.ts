@@ -163,9 +163,15 @@ export interface RerouterConfig {
     folderPath: string;
     rgba?: { r: number; g: number; b: number; a: number };
   };
+  ga4Config?: GA4Config;
   debugSlackUrl: string;
   saveImageRoot: string;
   saveMatchedScreen: boolean;
+}
+
+export interface GA4Config {
+  measurementId: string;
+  apiSecret: string;
 }
 
 export interface CounterConfig {
@@ -224,6 +230,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   deviceId: '',
   strictMode: false,
   debugSlackUrl: '',
+  ga4Config: undefined,
   saveImageRoot: '/sdcard/Pictures/Screenshots/robotmon',
   saveMatchedScreen: false,
 };
