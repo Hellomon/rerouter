@@ -170,8 +170,20 @@ export interface RerouterConfig {
 }
 
 export interface GA4Config {
+  /** @description GA4's MEASUREMENT ID */
   measurementId: string;
+
+  /** @description GA4's API SECRET */
   apiSecret: string;
+
+  /** @description xr-specific id, the id of license */
+  licenseId?: string;
+
+  /** @description xr-specific id, the id of the device */
+  deviceId?: string;
+
+  /** @description xr-specific id, the id of the user */
+  userId?: string;
 }
 
 export interface CounterConfig {

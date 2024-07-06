@@ -322,14 +322,49 @@ export class Rerouter {
   }
 
   // TODO: send slack message
-  public sendGA4Event(body: Parameters<typeof ThirdPartyUtils.sendGA4Event>[2]): void {
+
+  /**
+   * @description: send GA4 event with XR-specific format of parameters, without correct set-up of ga4Config, this function will not work
+   * @param {string} rerouterTask: the task name that the event is triggered
+   * @param {string} rerouterPage: the page name that the event is triggered
+   * @param {Record<string, any>} extraParams: extra parameters to be sent with the event
+   */
+  public sendRerouterGA4Event(rerouterTask: string, rerouterPage: string, extraParams: Record<string, any> = {}): void {
     if (!this.rerouterConfig.ga4Config) {
       this.warning(`sendGA4Event failed, ga4MeasurementId or ga4ApiSecret not set`);
       return;
     }
-    const { measurementId, apiSecret } = this.rerouterConfig.ga4Config;
+
+    const now = Date.now();
+    const eventHour = new Date(now).getHours();
+    const stringHour = (eventHour < 10 ? '0' : '') + eventHour;
+
+    const { measurementId, apiSecret, licenseId, deviceId, userId } = this.rerouterConfig.ga4Config;
+    const body: Parameters<typeof ThirdPartyUtils.sendGA4Event>[2] = {
+      client_id: licenseId || '',
+      user_id: userId || '',
+      timestamp_micros: now * 1_000,
+      events: [
+        {
+          name: rerouterPage,
+          params: {
+            ...extraParams,
+            ...{
+              rerouter_page: rerouterPage,
+              rerouter_task: rerouterTask,
+              event_hour: stringHour,
+              engagement_time_msec: 100,
+              license_id: licenseId || '',
+              xr_user_id: userId || '',
+              device_id: deviceId || '',
+            },
+          },
+        },
+      ],
+    };
+
     ThirdPartyUtils.sendGA4Event(measurementId, apiSecret, body);
-    Utils.log(`sendGA4Event: ${JSON.stringify(body, null, 2)}`);
+    Utils.log(`sendRerouterGA4Event: ${rerouterPage} ${rerouterTask}`);
   }
 
   private getRouteConfig(r: RouteConfig | string): RouteConfig | null {
