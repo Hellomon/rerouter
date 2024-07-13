@@ -163,9 +163,27 @@ export interface RerouterConfig {
     folderPath: string;
     rgba?: { r: number; g: number; b: number; a: number };
   };
+  ga4Config?: GA4Config;
   debugSlackUrl: string;
   saveImageRoot: string;
   saveMatchedScreen: boolean;
+}
+
+export interface GA4Config {
+  /** @description GA4's MEASUREMENT ID */
+  measurementId: string;
+
+  /** @description GA4's API SECRET */
+  apiSecret: string;
+
+  /** @description xr-specific id, the id of license */
+  licenseId?: string;
+
+  /** @description xr-specific id, the id of the device */
+  deviceId?: string;
+
+  /** @description xr-specific id, the id of the user */
+  userId?: string;
 }
 
 export const DefaultConfigValue: {
@@ -211,6 +229,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   deviceId: '',
   strictMode: false,
   debugSlackUrl: '',
+  ga4Config: undefined,
   saveImageRoot: '/sdcard/Pictures/Screenshots/robotmon',
   saveMatchedScreen: false,
 };
