@@ -1,4 +1,4 @@
-import { CounterConfig, DefaultCounterConfig } from './struct';
+import { GA4Config } from './struct';
 import { Utils } from './utils';
 
 export class ThirdPartyUtils {
@@ -68,16 +68,25 @@ export class ThirdPartyUtils {
 }
 
 // Usage:
-// Counter.counterConfig = {
-//   userId: this.config.userId,
-//   licenseId: this.config.deviceId,
-//   deviceId: this.config.licenseId,
-//   ga4Url: 'https://www.google-analytics.com/mp/collect?measurement_id=G-XXXXXXXXXX&api_secret=bXX-XXXXXXXXXX_XXXXXXX',
-// };
+// Counter.setConfig({ measurementId: 'G-XXXXXXXX', apiSecret: 'bXX-XXXXXXXXXX_XXXXXXX', userId: 'default_user_id', licenseId: 'default_license_id', deviceId: 'default_device_id' });
 // Counter.sendCounter(taskName, finishedPageName, furthurInfo);
 
 export class Counter {
-  public static counterConfig: CounterConfig = DefaultCounterConfig;
+  public static counterConfig: Required<GA4Config> = {
+    measurementId: 'G-XXXXXXXX',
+    apiSecret: 'bXX-XXXXXXXXXX_XXXXXXX',
+    userId: 'default_user_id',
+    licenseId: 'default_license_id',
+    deviceId: 'default_device_id',
+  };
+
+  public static setConfig(config: Partial<GA4Config>) {
+    this.counterConfig.measurementId = config.measurementId || this.counterConfig.measurementId;
+    this.counterConfig.apiSecret = config.apiSecret || this.counterConfig.apiSecret;
+    this.counterConfig.userId = config.userId || this.counterConfig.userId;
+    this.counterConfig.licenseId = config.licenseId || this.counterConfig.licenseId;
+    this.counterConfig.deviceId = config.deviceId || this.counterConfig.deviceId;
+  }
 
   public static assign<T>(target: T, source: Partial<T>): T {
     for (const key in source) {
@@ -90,10 +99,12 @@ export class Counter {
 
   // reference: https://ga-dev-tools.google/ga4/event-builder/, https://developers.google.com/analytics/devguides/collection/protocol/ga4/sending-events?client_type=gtag#send_an_event
   public static sendCounter(eventTitle: string, eventPageName: string, furthurInfo: object) {
+    const { measurementId, apiSecret, userId, licenseId, deviceId } = this.counterConfig;
+
     const eventHour = new Date().getHours();
     const stringHour = (eventHour < 10 ? '0' : '') + eventHour;
 
-    const body = {
+    const body: Parameters<typeof ThirdPartyUtils.sendGA4Event>[2] = {
       client_id: this.counterConfig.licenseId, // MUST ASSIGN for GA4, else will fail to collect this data
       timestamp_micros: Date.now() * 1000,
       events: [
@@ -105,19 +116,16 @@ export class Counter {
               rerouter_task: eventTitle,
               event_hour: stringHour,
               engagement_time_msec: 100,
-              license_id: this.counterConfig.licenseId,
-              xr_user_id: this.counterConfig.userId,
-              device_id: this.counterConfig.deviceId,
+              license_id: licenseId,
+              xr_user_id: userId,
+              device_id: deviceId,
             },
             furthurInfo
           ),
         },
       ],
     };
-
-    httpClient('POST', this.counterConfig.ga4Url, JSON.stringify(body), {
-      'Content-Type': 'application/json',
-    });
+    ThirdPartyUtils.sendGA4Event(measurementId, apiSecret, body);
     Utils.log(`Sending counter with ${JSON.stringify(this.counterConfig)}, ${JSON.stringify(body)}, task: ${eventTitle}, page: ${eventPageName}`);
   }
 }

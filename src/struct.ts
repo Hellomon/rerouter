@@ -186,19 +186,6 @@ export interface GA4Config {
   userId?: string;
 }
 
-export interface CounterConfig {
-  userId: string;
-  licenseId: string;
-  deviceId: string;
-  ga4Url: string; // for sending counter to GA4, sample: sample: https://www.google-analytics.com/mp/collect?measurement_id=G-XXXXXXXXXX&api_secret=bXX-XXXXXXXXXX_XXXXXXX
-}
-export const DefaultCounterConfig: CounterConfig = {
-  userId: '',
-  licenseId: '',
-  deviceId: '',
-  ga4Url: '', // for sending counter to GA4, sample: sample: https://www.google-analytics.com/mp/collect?measurement_id=G-XXXXXXXXXX&api_secret=bXX-XXXXXXXXXX_XXXXXXX
-};
-
 export const DefaultConfigValue: {
   XYRGBThres: number;
   PageThres: number;
