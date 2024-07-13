@@ -5,6 +5,11 @@ export class ThirdPartyUtils {
   static sendSlackMessage() {
     // TODO
   }
+
+  /**
+   * @description Send GA4 event, will auto-fill fields required by GA4
+   * @reference https://developers.google.com/analytics/devguides/collection/protocol/ga4/reference?client_type=gtag#payload
+   */
   static sendGA4Event(
     measurementId: string,
     apiSecret: string,
@@ -18,7 +23,44 @@ export class ThirdPartyUtils {
     }
   ) {
     const ga4Url = `https://www.google-analytics.com/mp/collect?measurement_id=${measurementId}&api_secret=${apiSecret}`;
-    // ref: https://developers.google.com/analytics/devguides/collection/protocol/ga4/reference?client_type=gtag#payload
+
+    // fill default values need from GA4
+    if (!body.timestamp_micros) {
+      body.timestamp_micros = Date.now() * 1000;
+    }
+    if (!body.client_id) {
+      body.client_id = 'default_client_id';
+    }
+    if (!body.user_id) {
+      body.user_id = 'default_user_id';
+    }
+    if (body.events.length === 0) {
+      body.events = [{ name: 'default_event_name', params: {} }];
+    }
+    for (let i = 0; i < body.events.length; i++) {
+      if (!body.events[i].params.rerouter_page) {
+        body.events[i].params.rerouter_page = 'default_page_name';
+      }
+      if (!body.events[i].params.rerouter_task) {
+        body.events[i].params.rerouter_task = 'default_task_name';
+      }
+      if (!body.events[i].params.event_hour) {
+        body.events[i].params.event_hour = '00';
+      }
+      if (!body.events[i].params.engagement_time_msec) {
+        body.events[i].params.engagement_time_msec = 100;
+      }
+      if (!body.events[i].params.license_id) {
+        body.events[i].params.license_id = 'default_license_id';
+      }
+      if (!body.events[i].params.xr_user_id) {
+        body.events[i].params.xr_user_id = 'default_user_id';
+      }
+      if (!body.events[i].params.device_id) {
+        body.events[i].params.device_id = 'default_device_id';
+      }
+    }
+
     httpClient('POST', ga4Url, JSON.stringify(body), {
       'Content-Type': 'application/json',
     });
