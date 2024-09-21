@@ -10,6 +10,7 @@ import {
   GroupPage,
   DefaultRerouterConfig,
   DefaultScreenConfig,
+  GameStatus,
 } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
@@ -17,6 +18,7 @@ import { updateGameStatus } from './xr';
 
 import 'core-js/es/object/assign';
 import 'core-js/es/array/find-index';
+
 
 // singleton class
 export class Rerouter {
@@ -730,7 +732,7 @@ export class Rerouter {
     Utils.log('[Rerouter][warning]', ...args);
   }
 
-  public updateGameStatus(status: 'launching'|'wait-for-input'|'login-failed'|'login-succeeded'|'playing'): boolean {
+  public updateGameStatus(status: GameStatus): boolean {
     return updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
   }
 }

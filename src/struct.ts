@@ -233,3 +233,11 @@ export const DefaultScreenConfig: ScreenConfig = {
   logScreenshotMaxFiles: 100,
   logScreenshotFolder: '',
 };
+
+export enum GameStatus {
+  WAIT_FOR_LOGIN_INPUT = 'wait-for-input',
+  LOGIN_SUCCEEDED = 'login-succeeded',
+  LOGIN_FAILED = 'login-failed',
+  LAUNCHING = 'launching',
+  PLAYING = 'playing',
+}
