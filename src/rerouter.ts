@@ -35,6 +35,8 @@ export class Rerouter {
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private startAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
 
+  private lastGameStatus: GameStatus | null = null;
+
   public reset(): void {
     // NOTE: this is an another way that resets Rerouter, just leaving here for memory
     // rerouterContainer.instance = new Rerouter();
@@ -732,6 +734,10 @@ export class Rerouter {
   }
 
   public updateGameStatus(status: GameStatus): boolean {
+    if (this.lastGameStatus === status) {
+      return false; // No update is needed if the status hasn't changed
+    }
+
     const maxRetries = 3;
     let attempts = 0;
     let result = false;
@@ -740,7 +746,8 @@ export class Rerouter {
       result = updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
 
       if (result === true) {
-        return true; // Return true if the operation was successful
+        this.lastGameStatus = status; // Update lastGameStatus on success
+        return true; // Operation successful, return true
       }
 
       attempts++;
