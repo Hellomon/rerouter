@@ -13,10 +13,12 @@ import {
 } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
+import { updateGameStatus } from './xr';
 
 import 'core-js/es/object/assign';
 import 'core-js/es/array/find-index';
 
+// singleton class
 export class Rerouter {
   public debug: boolean = true;
   public defaultConfig = DefaultConfigValue;
@@ -726,6 +728,10 @@ export class Rerouter {
 
   private warning(...args: any[]): void {
     Utils.log('[Rerouter][warning]', ...args);
+  }
+
+  public updateGameStatus(status: string): boolean {
+    return updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
   }
 }
 
