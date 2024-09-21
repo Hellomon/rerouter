@@ -156,7 +156,8 @@ export interface RerouterConfig {
   startAppDelay: number;
   autoLaunchApp: boolean;
   testingScreenshotPath: string;
-  deviceId: string;
+  instanceId: string; // the ID of the framework instance
+  deviceId: string; // the ID of the device the framework runs on
   strictMode: boolean;
   savePageReference?: {
     enable: boolean;
@@ -208,6 +209,7 @@ export const DefaultRerouterConfig: RerouterConfig = {
   startAppDelay: 6000,
   autoLaunchApp: true,
   testingScreenshotPath: './screenshot',
+  instanceId: '',
   deviceId: '',
   strictMode: false,
   debugSlackUrl: '',
