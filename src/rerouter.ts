@@ -19,7 +19,6 @@ import { updateGameStatus } from './xr';
 import 'core-js/es/object/assign';
 import 'core-js/es/array/find-index';
 
-
 // singleton class
 export class Rerouter {
   public debug: boolean = true;
@@ -733,7 +732,22 @@ export class Rerouter {
   }
 
   public updateGameStatus(status: GameStatus): boolean {
-    return updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
+    const maxRetries = 3;
+    let attempts = 0;
+    let result = false;
+
+    while (attempts < maxRetries) {
+      result = updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
+
+      if (result === true) {
+        return true; // Return true if the operation was successful
+      }
+
+      attempts++;
+      Utils.sleep(3000);
+    }
+
+    return false; // Return false after 3 unsuccessful attempts
   }
 }
 
