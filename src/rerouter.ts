@@ -730,7 +730,7 @@ export class Rerouter {
     Utils.log('[Rerouter][warning]', ...args);
   }
 
-  public updateGameStatus(status: string): boolean {
+  public updateGameStatus(status: 'launching'|'wait-for-input'|'login-failed'|'login-succeeded'|'playing'): boolean {
     return updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
   }
 }
