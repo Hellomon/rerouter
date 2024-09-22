@@ -737,24 +737,28 @@ export class Rerouter {
     if (this.lastGameStatus === status) {
       return false; // No update is needed if the status hasn't changed
     }
-
+  
     const maxRetries = 3;
     let attempts = 0;
-    let result = false;
-
-    while (attempts < maxRetries) {
-      result = updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
-
+  
+    while (true) {
+      const result = updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
+  
       if (result === true) {
         this.lastGameStatus = status; // Update lastGameStatus on success
         return true; // Operation successful, return true
       }
-
+  
       attempts++;
-      Utils.sleep(3000);
+  
+      if (attempts >= maxRetries) {
+        break; // Exit the loop after maxRetries attempts
+      }
+  
+      Utils.sleep(3000); // Sleep between attempts
     }
-
-    return false; // Return false after 3 unsuccessful attempts
+  
+    return false; // Return false after all attempts failed
   }
 }
 
