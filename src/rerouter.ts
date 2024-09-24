@@ -37,13 +37,13 @@ export class Rerouter {
 
   private lastGameStatus: GameStatus | null = null;
 
-  private static instance: Rerouter;
+  private static instance: Rerouter | undefined;
 
   private constructor() {
   }
 
   public static getInstance(): Rerouter {
-    if (!Rerouter.instance) {
+    if (Rerouter.instance === undefined) {
       Rerouter.instance = new Rerouter();
     }
     return Rerouter.instance;
