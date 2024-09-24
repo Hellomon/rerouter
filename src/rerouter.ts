@@ -37,6 +37,18 @@ export class Rerouter {
 
   private lastGameStatus: GameStatus | null = null;
 
+  private static instance: Rerouter;
+
+  private constructor() {
+  }
+
+  public static getInstance(): Rerouter {
+    if (!Rerouter.instance) {
+      Rerouter.instance = new Rerouter();
+    }
+    return Rerouter.instance;
+  }
+
   public reset(): void {
     // NOTE: this is an another way that resets Rerouter, just leaving here for memory
     // rerouterContainer.instance = new Rerouter();
@@ -776,4 +788,4 @@ export class Rerouter {
 //     return true;
 //   },
 // }) as any as Rerouter;
-export const rerouter = new Rerouter();
+export const rerouter = Rerouter.getInstance();
