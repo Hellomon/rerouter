@@ -106,6 +106,31 @@ export class Screen {
     }
   }
 
+  public swipe(fromPnt: { x: number; y: number }, toPnt: { x: number; y: number }, steps: number = 4): void {
+    const step_x = (toPnt.x - fromPnt.x) / steps;
+    const step_y = (toPnt.y - fromPnt.y) / steps;
+
+    let x = this.getScreenX(fromPnt.x);
+    let y = this.getScreenY(fromPnt.y);
+    tapDown(x, y, 40, 0);
+    sleep(10);
+    moveTo(x, y, 40, 0);
+    sleep(10);
+
+    for (let i = 0; i < steps; i++) {
+      x = this.getScreenX(fromPnt.x + step_x * i);
+      y = this.getScreenY(fromPnt.y + step_y * i);
+
+      moveTo(x, y, 40, 0);
+      sleep(100);
+    }
+
+    moveTo(this.getScreenX(toPnt.x), this.getScreenY(toPnt.y), 40, 0);
+    sleep(500);
+    tapUp(this.getScreenX(toPnt.x), this.getScreenY(toPnt.y), 40, 0);
+    sleep(500);
+  }
+
   public getScreenColor(devXY: { x: number; y: number }): RGB;
   public getScreenColor(devX: number, devY: number): RGB;
   public getScreenColor(p1: any, p2: any = undefined): RGB {
