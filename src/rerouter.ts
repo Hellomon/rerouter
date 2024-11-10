@@ -573,6 +573,8 @@ export class Rerouter {
           matchedPages.map(p => p.name)
         );
         matches.push({ matchedRoute: route, matchedPages });
+        // only return first match, allow multiple routes match and priority and ignore conflict
+        return matches;
       }
     }
     return matches;
