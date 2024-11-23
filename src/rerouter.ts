@@ -521,6 +521,7 @@ export class Rerouter {
   }
 
   private doActionForRoute(context: RouteContext, image: Image, route: Required<RouteConfig>, matchedPages: Page[], finishRound: (exitTask?: boolean) => void) {
+    console.log(`Matched route: ${route.path}`);
     this.logImpl(route.debug, `handleMatchedRoute: ${route.path}, times: ${context.matchTimes}, during: ${context.matchDuring}`);
     if (context.matchTimes < route.shouldMatchTimes || context.matchDuring < route.shouldMatchDuring) {
       // should still wait for matching condition
