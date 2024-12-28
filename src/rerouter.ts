@@ -748,6 +748,12 @@ export class Rerouter {
   public updateGameStatus(status: GameStatus): boolean {
     this.localGameStatus = status; // Update local status first
 
+    // If instanceId or deviceId is empty, skip updating cloud status
+    if (!this.rerouterConfig.instanceId || !this.rerouterConfig.deviceId) {
+      console.warn('Instance ID or Device ID is empty. Skipping cloud status update.');
+      return true; // Local update is considered successful
+    }
+
     if (this.cloudGameStatus === status) {
       return false; // No update is needed if the cloud status hasn't changed
     }
