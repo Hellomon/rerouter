@@ -772,6 +772,10 @@ export class Rerouter {
   
     return false; // Return false after all attempts failed
   }
+
+  public getGameStatus(): GameStatus | null {
+    return this.lastGameStatus;
+  }
 }
 
 // NOTE: this is an another way that resets Rerouter, just leaving here for memory
