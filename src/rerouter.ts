@@ -758,6 +758,11 @@ export class Rerouter {
       return false; // No update is needed if the cloud status hasn't changed
     }
 
+    if (this.rerouterConfig.deviceId === '' || this.rerouterConfig.instanceId === '') {
+      console.log(`deviceId or instanceId is empty, cannot update game status`);
+      return false;
+    }
+
     const maxRetries = 3;
     let attempts = 0;
 
