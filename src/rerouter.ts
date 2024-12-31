@@ -35,12 +35,12 @@ export class Rerouter {
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private startAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
 
-  private lastGameStatus: GameStatus | null = null;
+  private localGameStatus: GameStatus | null = null;
+  private cloudGameStatus: GameStatus | null = null;
 
   private static instance: Rerouter | undefined;
 
-  private constructor() {
-  }
+  private constructor() {}
 
   public static getInstance(): Rerouter {
     if (Rerouter.instance === undefined) {
@@ -746,38 +746,48 @@ export class Rerouter {
   }
 
   public updateGameStatus(status: GameStatus): boolean {
-    if (this.lastGameStatus === status) {
-      return false; // No update is needed if the status hasn't changed
+    this.localGameStatus = status; // Update local status first
+
+    // If instanceId or deviceId is empty, skip updating cloud status
+    if (!this.rerouterConfig.instanceId || !this.rerouterConfig.deviceId) {
+      console.warn('Instance ID or Device ID is empty. Skipping cloud status update.');
+      return true; // Local update is considered successful
     }
+
+    if (this.cloudGameStatus === status) {
+      return false; // No update is needed if the cloud status hasn't changed
+    }
+
     if (this.rerouterConfig.deviceId === '' || this.rerouterConfig.instanceId === '') {
       console.log(`deviceId or instanceId is empty, cannot update game status`);
       return false;
     }
+
     const maxRetries = 3;
     let attempts = 0;
-  
+
     while (true) {
       const result = updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
-  
+
       if (result === true) {
-        this.lastGameStatus = status; // Update lastGameStatus on success
+        this.cloudGameStatus = status; // Update cloud status on success
         return true; // Operation successful, return true
       }
-  
+
       attempts++;
-  
+
       if (attempts >= maxRetries) {
         break; // Exit the loop after maxRetries attempts
       }
-  
+
       Utils.sleep(3000); // Sleep between attempts
     }
-  
+
     return false; // Return false after all attempts failed
   }
 
   public getGameStatus(): GameStatus | null {
-    return this.lastGameStatus;
+    return this.localGameStatus;
   }
 }
 
