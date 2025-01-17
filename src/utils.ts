@@ -133,7 +133,8 @@ export class Utils {
 
   public static isAppOnTop(packageName: string): boolean {
     const topInfo = execute('dumpsys activity activities | grep mResumedActivity');
-    return topInfo.indexOf(packageName) !== -1;
+    // mResumedActivity: ActivityRecord{29199c5 u0 com.linecorp.LGTMTMG/com.linecorp.LGTMTM.TsumTsum t1872}
+    return topInfo.indexOf(`${packageName}/`) !== -1;
   }
 
   public static sendSlackMessage(url: string, title: string, message: string) {
