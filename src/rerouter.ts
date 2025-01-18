@@ -500,11 +500,23 @@ export class Rerouter {
           this.doActionForRoute(context, image, matchedRoute, matchedPages, finishRoundFunc);
           break;
         default:
-          // conflict
-          const error = this.handleConflictRoutes(task.name, image, matches, finishRoundFunc);
-          if (error) {
-            releaseImage(image);
-            throw error;
+          // compare priority
+          const highestPriority = Math.max(...matches.map(item => item.matchedRoute.priority));
+          const matchesWithHighestPriority = matches.filter(item => item.matchedRoute.priority === highestPriority);
+
+          if (matchesWithHighestPriority.length === 1) {
+            // perfect match 1
+            if (this.rerouterConfig.saveMatchedScreen) {
+              Utils.saveScreenshotToDisk(`${this.rerouterConfig.saveImageRoot}/matched`, `${matchesWithHighestPriority[0].matchedRoute.path}`, false, image);
+            }
+            this.doActionForRoute(context, image, matchesWithHighestPriority[0].matchedRoute, matchesWithHighestPriority[0].matchedPages, finishRoundFunc);
+          } else {
+            // conflict, multiple matches
+            const error = this.handleConflictRoutes(task.name, image, matchesWithHighestPriority, finishRoundFunc);
+            if (error) {
+              releaseImage(image);
+              throw error;
+            }
           }
           break;
       }
