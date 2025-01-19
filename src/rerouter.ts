@@ -450,7 +450,7 @@ export class Rerouter {
 
       // check task.autoStop
       const taskRunDuring = now - task.startTime;
-      if (task.config.forceStop && taskRunDuring > task.config.maxTaskDuring) {
+      if (task.config.forceStop && taskRunDuring > task.config.maxTaskDuring && task.config.maxTaskDuring > 0) {
         this.log(`Task ${task.name} AutoStop, exceed taskRunDuring`);
         break;
       }
