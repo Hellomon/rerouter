@@ -15,11 +15,13 @@ import {
 } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
+import { overrideConsole } from './overrides';
 import { updateGameStatus } from './xr';
 
 import 'core-js/es/object/assign';
 import 'core-js/es/array/find-index';
 
+// FIXME: clean up log related logic
 // singleton class
 export class Rerouter {
   public debug: boolean = true;
@@ -80,6 +82,10 @@ export class Rerouter {
       this.rerouterConfig.savePageReference.folderPath = folderPath;
       execute(`mkdir -p ${folderPath}`);
     }
+
+    overrideConsole.setLogLevel(this.rerouterConfig.logger.logLevel);
+    overrideConsole.setTimezoneOffsetHour(this.rerouterConfig.logger.timezoneOffsetHour);
+    overrideConsole.doOverrideGlobalConsole(this.rerouterConfig.logger.overrideGlobalConsole);
 
     // new screen if screen config changed
     this.screen = new Screen(this.screenConfig);
@@ -171,6 +177,7 @@ export class Rerouter {
     if (this.routeContext !== null) {
       this.routeContext.scriptRunning = false;
     }
+    overrideConsole.doOverrideGlobalConsole(false);
   }
 
   public checkInApp(): boolean {

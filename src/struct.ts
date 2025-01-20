@@ -165,6 +165,12 @@ export interface RerouterConfig {
     rgba?: { r: number; g: number; b: number; a: number };
   };
   debugSlackUrl: string;
+  logger: {
+    overrideGlobalConsole: boolean; // if true, this will override global console among all modules
+    timezoneOffsetHour: number;
+    logLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'ALL';
+  };
+
   saveImageRoot: string;
   saveMatchedScreen: boolean;
 }
@@ -213,6 +219,11 @@ export const DefaultRerouterConfig: RerouterConfig = {
   deviceId: '',
   strictMode: false,
   debugSlackUrl: '',
+  logger: {
+    overrideGlobalConsole: false,
+    timezoneOffsetHour: 8,
+    logLevel: 'ALL',
+  },
   saveImageRoot: '/sdcard/Pictures/Screenshots/robotmon',
   saveMatchedScreen: false,
 };
