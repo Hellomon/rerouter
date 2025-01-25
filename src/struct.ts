@@ -170,10 +170,20 @@ export interface RerouterConfig {
     timezoneOffsetHour: number;
     logLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'ALL';
   };
+  conflictRoutesHandler?: ConflictRoutesHandler;
 
   saveImageRoot: string;
   saveMatchedScreen: boolean;
 }
+
+export type ConflictRoutesHandler = (args: {
+  isStrictMode: boolean;
+  taskName: string;
+  screen: Screen;
+  image: Image;
+  matches: { matchedRoute: Required<RouteConfig> | null; matchedPages: Page[] }[];
+  finishRound: (exitTask?: boolean) => void;
+}) => void;
 
 export interface ConfigValue {
   XYRGBThres: number;

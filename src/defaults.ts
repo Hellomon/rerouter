@@ -1,4 +1,5 @@
-import type { ConfigValue, RerouterConfig, ScreenConfig } from './struct';
+import type { ConfigValue, RerouterConfig, ScreenConfig, RouteConfig, Page, ConflictRoutesHandler } from './struct';
+import { Utils } from './utils';
 
 export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   packageName: '',
@@ -15,6 +16,7 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
     timezoneOffsetHour: 8,
     logLevel: 'ALL',
   },
+  conflictRoutesHandler: undefined,
   saveImageRoot: '/sdcard/Pictures/Screenshots/robotmon',
   saveMatchedScreen: false,
 };
@@ -52,4 +54,15 @@ export const DEFAULT_CONFIG_VALUE: ConfigValue = {
   TaskConfigMinRoundInterval: 0,
   TaskConfigAutoStop: false,
   TaskConfigFindRouteDelay: 2000,
+};
+
+export const defaultHandleConflictRoutes: ConflictRoutesHandler = ({ isStrictMode, taskName, finishRound }): Error | undefined => {
+  if (isStrictMode) {
+    // TODO: save image rather than take another screenshot
+    Utils.saveScreenshotToDisk(DEFAULT_REROUTER_CONFIG.saveImageRoot, `${DEFAULT_REROUTER_CONFIG.deviceId}_conflictedRoutes`);
+    return new Error(`conflict detected, task: ${taskName}`);
+  }
+  console.log(`try handle conflict`);
+  finishRound(true);
+  keycode('BACK', DEFAULT_SCREEN_CONFIG.actionDuring);
 };
