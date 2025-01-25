@@ -170,12 +170,22 @@ export interface RerouterConfig {
     timezoneOffsetHour: number;
     logLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'ALL';
   };
+  conflictRoutesHandler?: ConflictRoutesHandler;
 
   saveImageRoot: string;
   saveMatchedScreen: boolean;
 }
 
-export const DefaultConfigValue: {
+export type ConflictRoutesHandler = (args: {
+  isStrictMode: boolean;
+  taskName: string;
+  screen: Screen;
+  image: Image;
+  matches: { matchedRoute: Required<RouteConfig> | null; matchedPages: Page[] }[];
+  finishRound: (exitTask?: boolean) => void;
+}) => void;
+
+export interface ConfigValue {
   XYRGBThres: number;
   PageThres: number;
   GroupPageThres: number;
@@ -191,59 +201,7 @@ export const DefaultConfigValue: {
   TaskConfigMinRoundInterval: number;
   TaskConfigAutoStop: boolean;
   TaskConfigFindRouteDelay: number;
-} = {
-  XYRGBThres: 0.9,
-  PageThres: 0.9,
-  GroupPageThres: 0.9,
-  GroupPageMatchOP: '||',
-  RouteConfigShouldMatchTimes: 1,
-  RouteConfigShouldMatchDuring: 0,
-  RouteConfigBeforeActionDelay: 250,
-  RouteConfigAfterActionDelay: 250,
-  RouteConfigPriority: 1,
-  RouteConfigDebug: false,
-  TaskConfigMaxTaskRunTimes: 1,
-  TaskConfigMaxTaskDuring: 0,
-  TaskConfigMinRoundInterval: 0,
-  TaskConfigAutoStop: false,
-  TaskConfigFindRouteDelay: 2000,
-};
-
-export const DefaultRerouterConfig: RerouterConfig = {
-  packageName: '',
-  taskDelay: 2000,
-  startAppDelay: 6000,
-  autoLaunchApp: true,
-  testingScreenshotPath: './screenshot',
-  instanceId: '',
-  deviceId: '',
-  strictMode: false,
-  debugSlackUrl: '',
-  logger: {
-    overrideGlobalConsole: false,
-    timezoneOffsetHour: 8,
-    logLevel: 'ALL',
-  },
-  saveImageRoot: '/sdcard/Pictures/Screenshots/robotmon',
-  saveMatchedScreen: false,
-};
-
-export const DefaultScreenConfig: ScreenConfig = {
-  devWidth: 640,
-  devHeight: 360,
-  deviceWidth: 0,
-  deviceHeight: 0,
-  screenWidth: 0,
-  screenHeight: 0,
-  screenOffsetX: 0,
-  screenOffsetY: 0,
-  actionDuring: 180,
-  rotation: 'horizontal',
-  logScreenshotLastTime: 0,
-  logScreenshotMinIntervalInSec: 10,
-  logScreenshotMaxFiles: 100,
-  logScreenshotFolder: '',
-};
+}
 
 export enum GameStatus {
   WAIT_FOR_LOGIN_INPUT = 'wait-for-input',
