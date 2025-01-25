@@ -1,4 +1,4 @@
-import { DefaultRerouterConfig, ScreenConfig, XY, XYRGB } from './struct';
+import type { ScreenConfig, XY, XYRGB } from './struct';
 import { Utils } from './utils';
 
 export class Screen {

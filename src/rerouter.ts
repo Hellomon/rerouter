@@ -1,22 +1,10 @@
-import {
-  DefaultConfigValue,
-  RerouterConfig,
-  RouteConfig,
-  ScreenConfig,
-  TaskConfig,
-  Task,
-  RouteContext,
-  Page,
-  GroupPage,
-  DefaultRerouterConfig,
-  DefaultScreenConfig,
-  GameStatus,
-  EventName,
-} from './struct';
+import { RerouterConfig, RouteConfig, ScreenConfig, TaskConfig, Task, RouteContext, Page, GroupPage, ConfigValue, GameStatus, EventName } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
-import { overrideConsole } from './overrides';
 import { updateGameStatus } from './xr';
+
+import { overrideConsole } from './overrides';
+import { DEFAULT_REROUTER_CONFIG, DEFAULT_SCREEN_CONFIG, DEFAULT_CONFIG_VALUE } from './defaults';
 
 import 'core-js/es/object/assign';
 import 'core-js/es/array/find-index';
@@ -25,9 +13,9 @@ import 'core-js/es/array/find-index';
 // singleton class
 export class Rerouter {
   public debug: boolean = true;
-  public defaultConfig = DefaultConfigValue;
-  public rerouterConfig: RerouterConfig = DefaultRerouterConfig;
-  public screenConfig: ScreenConfig = DefaultScreenConfig;
+  public defaultConfig: ConfigValue = DEFAULT_CONFIG_VALUE;
+  public rerouterConfig: RerouterConfig = DEFAULT_REROUTER_CONFIG;
+  public screenConfig: ScreenConfig = DEFAULT_SCREEN_CONFIG;
   public screen: Screen = new Screen(this.screenConfig);
 
   private running: boolean = false;
@@ -618,12 +606,12 @@ export class Rerouter {
     this.warning(warningMsg);
 
     if (this.rerouterConfig.debugSlackUrl !== '') {
-      Utils.sendSlackMessage(this.rerouterConfig.debugSlackUrl, 'Conflict Routes Report', `${DefaultRerouterConfig.deviceId} just logged ${warningMsg}`);
+      Utils.sendSlackMessage(this.rerouterConfig.debugSlackUrl, 'Conflict Routes Report', `${DEFAULT_REROUTER_CONFIG.deviceId} just logged ${warningMsg}`);
     }
 
     if (this.rerouterConfig.strictMode) {
       // TODO: save image rather than take another screenshot
-      Utils.saveScreenshotToDisk(this.rerouterConfig.saveImageRoot, `${DefaultRerouterConfig.deviceId}_conflictedRoutes`);
+      Utils.saveScreenshotToDisk(this.rerouterConfig.saveImageRoot, `${DEFAULT_REROUTER_CONFIG.deviceId}_conflictedRoutes`);
       return new Error(`Intentional crash due to multiple route applied to current screen: ${matchDetails}`);
     }
 
