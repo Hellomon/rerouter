@@ -1,3 +1,4 @@
+// FIXME: clear log functions
 export function log(...msgs: any[]) {
   const date = new Date().toLocaleString('en-US', {
     timeZone: 'Asia/Taipei',
