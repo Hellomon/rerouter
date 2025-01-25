@@ -11,6 +11,7 @@ import {
   DefaultRerouterConfig,
   DefaultScreenConfig,
   GameStatus,
+  EventName,
 } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
@@ -761,6 +762,10 @@ export class Rerouter {
 
   public updateGameStatus(status: GameStatus): boolean {
     this.localGameStatus = status; // Update local status first
+
+    if (status === GameStatus.NEW_ACCOUNT) {
+      sendEvent(EventName.RUNNING, '');
+    }
 
     // If instanceId or deviceId is empty, skip updating cloud status
     if (!this.rerouterConfig.instanceId || !this.rerouterConfig.deviceId) {

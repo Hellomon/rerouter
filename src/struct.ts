@@ -242,3 +242,6 @@ export enum GameStatus {
   PLAYING = 'playing',
   NEW_ACCOUNT = 'new-account',
 }
+export enum EventName {
+  RUNNING = 'running',
+}
