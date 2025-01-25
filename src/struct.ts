@@ -240,4 +240,5 @@ export enum GameStatus {
   LOGIN_FAILED = 'login-failed',
   LAUNCHING = 'launching',
   PLAYING = 'playing',
+  NEW_ACCOUNT = 'new-account',
 }
