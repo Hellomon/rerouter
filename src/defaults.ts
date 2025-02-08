@@ -17,7 +17,7 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
     logLevel: 'ALL',
   },
   conflictRoutesHandler: undefined,
-  saveImageRoot: '/sdcard/Pictures/Screenshots/robotmon',
+  saveImageRoot: '/data/media/0/Download/', // redroid default download folder
   saveMatchedScreen: false,
 };
 
