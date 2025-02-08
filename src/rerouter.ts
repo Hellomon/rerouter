@@ -64,7 +64,7 @@ export class Rerouter {
     this.screenConfig.screenWidth = this.screenConfig.screenWidth || dWidth;
     this.screenConfig.screenHeight = this.screenConfig.screenHeight || dHeight;
     this.log(`screenWidth: ${this.screenConfig.screenWidth}, screenHeight: ${this.screenConfig.screenHeight}`);
-    this.screenConfig.logScreenshotFolder = Utils.joinPaths(this.rerouterConfig.saveImageRoot, this.rerouterConfig.deviceId);
+    (this.screenConfig as any).logScreenshotFolder = Utils.joinPaths(this.rerouterConfig.saveImageRoot, this.rerouterConfig.deviceId); // Type assertion to bypass readonly restriction
     if (this.rerouterConfig.savePageReference?.enable) {
       const folderPath = this.rerouterConfig.savePageReference.folderPath || Utils.joinPaths(this.rerouterConfig.saveImageRoot, 'pageReference');
       this.rerouterConfig.savePageReference.folderPath = folderPath;

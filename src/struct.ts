@@ -147,7 +147,7 @@ export interface ScreenConfig {
   logScreenshotLastTime: number;
   logScreenshotMinIntervalInSec: number;
   logScreenshotMaxFiles: number;
-  logScreenshotFolder: string;
+  readonly logScreenshotFolder: string; // readonly property
 }
 
 export interface RerouterConfig {
