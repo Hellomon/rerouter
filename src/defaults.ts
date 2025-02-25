@@ -30,7 +30,7 @@ export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
   screenHeight: 0,
   screenOffsetX: 0,
   screenOffsetY: 0,
-  actionDuring: 180,
+  actionDuring: 100,
   rotation: 'horizontal',
   logScreenshotLastTime: 0,
   logScreenshotMinIntervalInSec: 10,
