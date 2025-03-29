@@ -201,10 +201,11 @@ export class Utils {
   }
 
   public static saveScreenshotToDisk(folderPath: string, suffix: string = '', timestamp: boolean = true, img: Image = undefined) {
-    // if folderPath is relative path, convert to absolute path
-    if (folderPath.charAt(0) !== '/') {
-      folderPath = `/data/media/0/Downloads/${folderPath}`;
+    // Always use /data/media/0/Downloads/ as base path
+    if (folderPath.charAt(0) === '/') {
+      folderPath = folderPath.substring(1);
     }
+    folderPath = `/data/media/0/Downloads/${folderPath}`;
     const date = new Date(Utils.getTaiwanTime());
     const [YYYY, MM, dd, hh, mm, ss] = [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()].map(
       item => this.padZero(item)
