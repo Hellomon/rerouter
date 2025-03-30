@@ -1,4 +1,6 @@
 // FIXME: clear log functions
+import { DEFAULT_REROUTER_CONFIG } from './defaults';
+
 export function log(...msgs: any[]) {
   const date = new Date().toLocaleString('en-US', {
     timeZone: 'Asia/Taipei',
@@ -201,11 +203,11 @@ export class Utils {
   }
 
   public static saveScreenshotToDisk(folderPath: string, suffix: string = '', timestamp: boolean = true, img: Image = undefined) {
-    // Always use /data/media/0/Downloads/ as base path
+    // Always use saveImageRoot from defaults.ts
     if (folderPath.charAt(0) === '/') {
       folderPath = folderPath.substring(1);
     }
-    folderPath = `/data/media/0/Downloads/${folderPath}`;
+    folderPath = `${DEFAULT_REROUTER_CONFIG.saveImageRoot}${folderPath}`;
     const date = new Date(Utils.getTaiwanTime());
     const [YYYY, MM, dd, hh, mm, ss] = [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()].map(
       item => this.padZero(item)
