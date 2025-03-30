@@ -17,7 +17,7 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
     logLevel: 'ALL',
   },
   conflictRoutesHandler: undefined,
-  saveImageRoot: '/data/media/0/Download/', // redroid default download folder
+  saveImageRoot: '/data/media/0/Downloads/', // redroid default download folder
   saveMatchedScreen: false,
 };
 
