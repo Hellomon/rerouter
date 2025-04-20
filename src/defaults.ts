@@ -59,7 +59,7 @@ export const DEFAULT_CONFIG_VALUE: ConfigValue = {
 export const defaultHandleConflictRoutes: ConflictRoutesHandler = ({ isStrictMode, taskName, finishRound }): Error | undefined => {
   if (isStrictMode) {
     // TODO: save image rather than take another screenshot
-    Utils.saveScreenshotToDisk(DEFAULT_REROUTER_CONFIG.saveImageRoot, `${DEFAULT_REROUTER_CONFIG.deviceId}_conflictedRoutes`);
+    Utils.saveScreenshotToDisk('', `${DEFAULT_REROUTER_CONFIG.deviceId}_conflictedRoutes`);
     return new Error(`conflict detected, task: ${taskName}`);
   }
   console.log(`try handle conflict`);

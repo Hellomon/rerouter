@@ -64,7 +64,7 @@ export class Rerouter {
     this.screenConfig.screenWidth = this.screenConfig.screenWidth || dWidth;
     this.screenConfig.screenHeight = this.screenConfig.screenHeight || dHeight;
     this.log(`screenWidth: ${this.screenConfig.screenWidth}, screenHeight: ${this.screenConfig.screenHeight}`);
-    (this.screenConfig as any).logScreenshotFolder = Utils.joinPaths(this.rerouterConfig.saveImageRoot, this.rerouterConfig.deviceId); // Type assertion to bypass readonly restriction
+    (this.screenConfig as any).logScreenshotFolder = this.rerouterConfig.deviceId; // Type assertion to bypass readonly restriction
     if (this.rerouterConfig.savePageReference?.enable) {
       const folderPath = this.rerouterConfig.savePageReference.folderPath || Utils.joinPaths(this.rerouterConfig.saveImageRoot, 'pageReference');
       this.rerouterConfig.savePageReference.folderPath = folderPath;
@@ -490,7 +490,7 @@ export class Rerouter {
         case 1:
           // perfect match 1
           if (this.rerouterConfig.saveMatchedScreen) {
-            Utils.saveScreenshotToDisk(`${this.rerouterConfig.saveImageRoot}/matched`, `${matches[0].matchedRoute.path}`, false, image);
+            Utils.saveScreenshotToDisk('matched', `${matches[0].matchedRoute.path}`, false, image);
           }
 
           this.doActionForRoute(context, image, matchedRoute, matchedPages, finishRoundFunc);
@@ -503,7 +503,7 @@ export class Rerouter {
           if (matchesWithHighestPriority.length === 1) {
             // perfect match 1
             if (this.rerouterConfig.saveMatchedScreen) {
-              Utils.saveScreenshotToDisk(`${this.rerouterConfig.saveImageRoot}/matched`, `${matchesWithHighestPriority[0].matchedRoute.path}`, false, image);
+              Utils.saveScreenshotToDisk('matched', `${matchesWithHighestPriority[0].matchedRoute.path}`, false, image);
             }
             this.doActionForRoute(context, image, matchesWithHighestPriority[0].matchedRoute, matchesWithHighestPriority[0].matchedPages, finishRoundFunc);
           } else {
