@@ -127,6 +127,14 @@ export class Rerouter {
    * @param config information about how task works
    */
   public addTask(config: TaskConfig): void {
+    // Check if a task with the same name already exists
+    for (let i = 0; i < this.tasks.length; i++) {
+      if (this.tasks[i].name === config.name) {
+        this.warning(`A task with the name '${config.name}' already exists. Duplicate task will not be added.`);
+        return;
+      }
+    }
+
     this.tasks.push({
       name: config.name,
       config: this.wrapTaskConfigWithDefault(config),
