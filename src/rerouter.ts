@@ -367,6 +367,8 @@ export class Rerouter {
   }
 
   private wrapTaskConfigWithDefault(config: TaskConfig): Required<TaskConfig> {
+    const beforeTask = config.beforeTask ?? config.beforeRoute ?? null;
+    const afterTask = config.afterTask ?? config.afterRoute ?? null;
     return {
       name: config.name,
       maxTaskRunTimes: config.maxTaskRunTimes ?? this.defaultConfig.TaskConfigMaxTaskRunTimes,
@@ -374,8 +376,10 @@ export class Rerouter {
       minRoundInterval: config.minRoundInterval ?? this.defaultConfig.TaskConfigMinRoundInterval,
       forceStop: config.forceStop ?? this.defaultConfig.TaskConfigAutoStop,
       findRouteDelay: config.findRouteDelay ?? this.defaultConfig.TaskConfigFindRouteDelay,
-      beforeRoute: config.beforeRoute ?? null,
-      afterRoute: config.afterRoute ?? null,
+      beforeTask,
+      afterTask,
+      beforeRoute: beforeTask,
+      afterRoute: afterTask,
     };
   }
 
