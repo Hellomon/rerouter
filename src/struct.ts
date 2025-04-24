@@ -144,6 +144,14 @@ export interface TaskConfig {
    */
   findRouteDelay?: number;
   /**
+   * Do something before task starts
+   */
+  beforeTask?: null | ((task: Task) => void);
+  /**
+   * Do something after task ends
+   */
+  afterTask?: null | ((task: Task) => void);
+  /**
    * Do something before go into matching route loop, if return 'skipRouteLoop', it will not go into matching route loop
    */
   beforeRoute?: null | ((task: Task) => void | 'skipRouteLoop');

@@ -374,6 +374,8 @@ export class Rerouter {
       minRoundInterval: config.minRoundInterval ?? this.defaultConfig.TaskConfigMinRoundInterval,
       forceStop: config.forceStop ?? this.defaultConfig.TaskConfigAutoStop,
       findRouteDelay: config.findRouteDelay ?? this.defaultConfig.TaskConfigFindRouteDelay,
+      beforeTask: config.beforeTask ?? null,
+      afterTask: config.afterTask ?? null,
       beforeRoute: config.beforeRoute ?? null,
       afterRoute: config.afterRoute ?? null,
     };
@@ -395,6 +397,13 @@ export class Rerouter {
       task.startTime = now;
       task.runTimes = 0;
       let exitTask = false;
+
+      // Execute beforeTask if exists
+      if (task.config.beforeTask !== null) {
+        this.log(`Task: ${task.name} do beforeTask()`);
+        task.config.beforeTask(task);
+      }
+
       for (let i = 0; i < task.config.maxTaskRunTimes && this.running && !exitTask; i++) {
         this.log(`Task: ${task.name} run ${task.runTimes}`);
         let skipRoute = false;
@@ -424,6 +433,13 @@ export class Rerouter {
           break;
         }
       }
+
+      // Execute afterTask if exists
+      if (task.config.afterTask !== null) {
+        this.log(`Task: ${task.name} do afterTask()`);
+        task.config.afterTask(task);
+      }
+
       Utils.sleep(this.rerouterConfig.taskDelay);
     }
   }
