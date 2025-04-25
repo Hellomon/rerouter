@@ -146,7 +146,15 @@ export interface TaskConfig {
   /**
    * Do something before go into matching route loop, if return 'skipRouteLoop', it will not go into matching route loop
    */
+  beforeTask?: null | ((task: Task) => void | 'skipRouteLoop');
+  afterTask?: null | ((task: Task) => void);
+  /**
+   * Alias for beforeTask (for backward compatibility)
+   */
   beforeRoute?: null | ((task: Task) => void | 'skipRouteLoop');
+  /**
+   * Alias for afterTask (for backward compatibility)
+   */
   afterRoute?: null | ((task: Task) => void);
 }
 
