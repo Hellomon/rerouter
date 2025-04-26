@@ -200,7 +200,7 @@ export interface RerouterConfig {
   debugSlackUrl: string;
   logger: {
     overrideGlobalConsole: boolean; // if true, this will override global console among all modules
-    timezoneOffsetHour: number;
+    timezoneOffsetHour: number | undefined;
     logLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'ALL';
   };
   conflictRoutesHandler?: ConflictRoutesHandler;

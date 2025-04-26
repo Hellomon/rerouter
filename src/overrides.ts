@@ -39,14 +39,14 @@ const levelToMethod: Record<LogLevel, typeof console.log> = {
  * @description a console with custom log level, print human-readable time with specific timezone offset
  */
 export const overrideConsole: typeof originConsole & {
-  timezoneOffsetHour: number;
+  timezoneOffsetHour: number | undefined;
   logLevel: LogLevel;
 
   /**
    * @description for print human-readable time, set timezone offset in hour
-   * @param timezoneOffsetHour timezone offset in hour, default is 8 (taipei timezone)
+   * @param timezoneOffsetHour timezone offset in hour, default is undefined (system's timezone)
    */
-  setTimezoneOffsetHour: (timezoneOffsetHour: number) => void;
+  setTimezoneOffsetHour: (timezoneOffsetHour: number | undefined) => void;
 
   /**
    * @description set log level
@@ -103,7 +103,7 @@ export const overrideConsole: typeof originConsole & {
     }
   },
 
-  setTimezoneOffsetHour: (timezoneOffsetHour: number) => {
+  setTimezoneOffsetHour: (timezoneOffsetHour: number | undefined) => {
     overrideConsole.timezoneOffsetHour = timezoneOffsetHour;
   },
   setLogLevel: (level: LogLevel) => {
@@ -150,20 +150,22 @@ function trimMessage(message: string) {
   return `${message || ''}`.substring(0, 1000);
 }
 
-function timeLabel(timezoneOffsetHours: number) {
+function timeLabel(timezoneOffsetHours: number | undefined = undefined) {
   const now = new Date();
-  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-
-  // Apply the desired timezone offset
-  const targetTime = new Date(utcTime + timezoneOffsetHours * 3600000);
+  // Get UTC timestamp
+  const utcTime = now.getTime();
+  // Convert to target timezone, if timezoneOffsetHours is not provided, use system's timezone offset
+  // Note: getTimezoneOffset() returns negative value for timezones ahead of UTC
+  const offset = timezoneOffsetHours === undefined ? -now.getTimezoneOffset() / 60 : timezoneOffsetHours;
+  const localTime = new Date(utcTime + offset * 3600000);
 
   // Format the date components
-  const YYYY = targetTime.getFullYear();
-  const MM = ('0' + (targetTime.getMonth() + 1)).slice(-2); // Months are 0-based
-  const DD = ('0' + targetTime.getDate()).slice(-2);
-  const HH = ('0' + targetTime.getHours()).slice(-2);
-  const mm = ('0' + targetTime.getMinutes()).slice(-2);
-  const ss = ('0' + targetTime.getSeconds()).slice(-2);
+  const YYYY = localTime.getFullYear();
+  const MM = ('0' + (localTime.getMonth() + 1)).slice(-2); // Months are 0-based
+  const DD = ('0' + localTime.getDate()).slice(-2);
+  const HH = ('0' + localTime.getHours()).slice(-2);
+  const mm = ('0' + localTime.getMinutes()).slice(-2);
+  const ss = ('0' + localTime.getSeconds()).slice(-2);
 
   // Construct the final string
   return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
