@@ -1,5 +1,6 @@
 // FIXME: clear log functions
 import { DEFAULT_REROUTER_CONFIG } from './defaults';
+import { overrideConsole } from './overrides';
 
 export function log(...msgs: any[]) {
   const date = new Date().toLocaleString('en-US', {
@@ -59,10 +60,6 @@ export class Utils {
     }
   }
 
-  public static getTaiwanTime(): number {
-    return Date.now() + 8 * 60 * 60 * 1000;
-  }
-
   public static log(...args: any[]) {
     for (let i = 0; i < args.length; i++) {
       let arg = args[i];
@@ -70,9 +67,29 @@ export class Utils {
         args[i] = JSON.stringify(arg);
       }
     }
-    const date = new Date(Utils.getTaiwanTime());
-    const dateString = `[${date.getMonth() + 1}-${date.getDate()}T${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}]`;
-    console.log(dateString, ...args);
+    const header = `[${Utils.timeLabel(overrideConsole.timezoneOffsetHour)}]`;
+    console.log(header, ...args);
+  }
+
+  public static timeLabel(timezoneOffsetHours: number | undefined = undefined): string {
+    const date = new Date();
+    
+    // If timezone offset is specified, adjust the date
+    if (timezoneOffsetHours !== undefined) {
+      const systemOffset = -date.getTimezoneOffset() / 60;
+      const hoursDiff = timezoneOffsetHours - systemOffset;
+      date.setTime(date.getTime() + hoursDiff * 3600000);
+    }
+
+    // Format the date components (will use local time display)
+    const YYYY = date.getFullYear();
+    const MM = ('0' + (date.getMonth() + 1)).slice(-2); // Months are 0-based
+    const DD = ('0' + date.getDate()).slice(-2);
+    const HH = ('0' + date.getHours()).slice(-2);
+    const mm = ('0' + date.getMinutes()).slice(-2);
+    const ss = ('0' + date.getSeconds()).slice(-2);
+
+    return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
   }
 
   public static startApp(packageName: string) {
@@ -208,15 +225,13 @@ export class Utils {
       folderPath = folderPath.substring(1);
     }
     folderPath = `${DEFAULT_REROUTER_CONFIG.saveImageRoot}${folderPath}`;
-    const date = new Date(Utils.getTaiwanTime());
-    const [YYYY, MM, dd, hh, mm, ss] = [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()].map(
-      item => this.padZero(item)
-    );
-
-    let filename = `${suffix}.png`;
-    if (timestamp) {
-      filename = `${YYYY}-${MM}-${dd}T${hh}.${mm}.${ss}_${suffix}.png`;
-    }
+    
+    // Use the same timezone handling as overrideConsole
+    const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);
+    const [datePart, timePart] = timeStr.split(' ');
+    const filename = timestamp 
+      ? `${datePart}T${timePart.replace(/:/g, '.')}_${suffix}.png`
+      : `${suffix}.png`;
 
     if (img !== undefined) {
       saveImage(img, `${folderPath}/${filename}`);
