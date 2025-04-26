@@ -151,23 +151,23 @@ function trimMessage(message: string) {
 }
 
 function timeLabel(timezoneOffsetHours: number | undefined = undefined) {
-  const now = new Date();
-  // Get UTC timestamp
-  const utcTime = now.getTime();
-  // Convert to target timezone, if timezoneOffsetHours is not provided, use system's timezone offset
-  // Note: getTimezoneOffset() returns negative value for timezones ahead of UTC
-  const offset = timezoneOffsetHours === undefined ? -now.getTimezoneOffset() / 60 : timezoneOffsetHours;
-  const localTime = new Date(utcTime + offset * 3600000);
+  const date = new Date();
+  
+  // If timezone offset is specified, adjust the date
+  if (timezoneOffsetHours !== undefined) {
+    const systemOffset = -date.getTimezoneOffset() / 60;
+    const hoursDiff = timezoneOffsetHours - systemOffset;
+    date.setTime(date.getTime() + hoursDiff * 3600000);
+  }
 
-  // Format the date components
-  const YYYY = localTime.getFullYear();
-  const MM = ('0' + (localTime.getMonth() + 1)).slice(-2); // Months are 0-based
-  const DD = ('0' + localTime.getDate()).slice(-2);
-  const HH = ('0' + localTime.getHours()).slice(-2);
-  const mm = ('0' + localTime.getMinutes()).slice(-2);
-  const ss = ('0' + localTime.getSeconds()).slice(-2);
+  // Format the date components (will use local time display)
+  const YYYY = date.getFullYear();
+  const MM = ('0' + (date.getMonth() + 1)).slice(-2); // Months are 0-based
+  const DD = ('0' + date.getDate()).slice(-2);
+  const HH = ('0' + date.getHours()).slice(-2);
+  const mm = ('0' + date.getMinutes()).slice(-2);
+  const ss = ('0' + date.getSeconds()).slice(-2);
 
-  // Construct the final string
   return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
 }
 
