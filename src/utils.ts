@@ -240,7 +240,7 @@ export class Utils {
       releaseImage(img);
     }
 
-    Utils.log(`Write to file: ${folderPath}/${filename}`);
+    console.log(`Write to file: ${folderPath}/${filename}`);
   }
 
   public static removeOldestFilesIfExceedsLimit(folderPath: string, maxFiles: number = 100): void {
@@ -269,7 +269,7 @@ export class Utils {
       const oldestFile = filesWithDates.shift();
       if (oldestFile) {
         execute(`rm ${folderPath}/${oldestFile.filename}`);
-        Utils.log(`rm: ${folderPath}/${oldestFile.filename}`);
+        console.log(`rm: ${folderPath}/${oldestFile.filename}`);
       }
     }
   }
