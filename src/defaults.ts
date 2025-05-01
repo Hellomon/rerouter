@@ -13,7 +13,7 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   debugSlackUrl: '',
   logger: {
     overrideGlobalConsole: false,
-    timezoneOffsetHour: undefined,
+    timezoneOffsetHour: 8,
     logLevel: 'ALL',
   },
   conflictRoutesHandler: undefined,
