@@ -502,7 +502,7 @@ export class Rerouter {
         case 1:
           // perfect match 1
           if (this.rerouterConfig.saveMatchedScreen) {
-            Utils.saveScreenshotToDisk('matched', `${matches[0].matchedRoute.path}`, false, image);
+            Utils.saveScreenshotToDisk('matched', `${matches[0].matchedRoute.path}`, false, image, this.rerouterConfig.saveImageRoot);
           }
 
           this.doActionForRoute(context, image, matchedRoute, matchedPages, finishRoundFunc);
@@ -515,7 +515,7 @@ export class Rerouter {
           if (matchesWithHighestPriority.length === 1) {
             // perfect match 1
             if (this.rerouterConfig.saveMatchedScreen) {
-              Utils.saveScreenshotToDisk('matched', `${matchesWithHighestPriority[0].matchedRoute.path}`, false, image);
+              Utils.saveScreenshotToDisk('matched', `${matchesWithHighestPriority[0].matchedRoute.path}`, false, image, this.rerouterConfig.saveImageRoot);
             }
             this.doActionForRoute(context, image, matchesWithHighestPriority[0].matchedRoute, matchesWithHighestPriority[0].matchedPages, finishRoundFunc);
           } else {
@@ -636,7 +636,7 @@ export class Rerouter {
     }
 
     if (this.rerouterConfig.strictMode) {
-      Utils.saveScreenshotToDisk('', `${this.rerouterConfig.deviceId}_conflictedRoutes`, true, image);
+      Utils.saveScreenshotToDisk('', `${this.rerouterConfig.deviceId}_conflictedRoutes`, true, image, this.rerouterConfig.saveImageRoot);
     }
 
     const handler = this.rerouterConfig.conflictRoutesHandler || defaultHandleConflictRoutes;

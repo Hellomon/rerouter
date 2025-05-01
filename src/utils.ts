@@ -1,6 +1,6 @@
 // FIXME: clear log functions
 import { overrideConsole } from './overrides';
-import { rerouter } from './rerouter';
+import { DEFAULT_REROUTER_CONFIG } from './defaults';
 
 export function log(...msgs: any[]) {
   const date = new Date().toLocaleString('en-US', {
@@ -219,12 +219,11 @@ export class Utils {
     return num < 10 ? `0${num}` : `${num}`;
   }
 
-  public static saveScreenshotToDisk(folderPath: string, suffix: string = '', timestamp: boolean = true, img: Image = undefined) {
-    // Always use saveImageRoot from defaults.ts
+  public static saveScreenshotToDisk(folderPath: string, suffix: string = '', timestamp: boolean = true, img: Image = undefined, saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot) {
     if (folderPath.charAt(0) === '/') {
       folderPath = folderPath.substring(1);
     }
-    folderPath = `${rerouter.rerouterConfig.saveImageRoot}${folderPath}`;
+    folderPath = `${saveImageRoot}${folderPath}`;
     
     // Use the same timezone handling as overrideConsole
     const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);

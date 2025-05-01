@@ -1,5 +1,6 @@
 import type { ScreenConfig, XY, XYRGB } from './struct';
 import { Utils } from './utils';
+import { DEFAULT_REROUTER_CONFIG } from './defaults';
 
 export class Screen {
   public static debug: boolean = false;
@@ -200,7 +201,7 @@ export class Screen {
   checkAndSaveScreenshots() {
     if (this.config.logScreenshotFolder !== '' && Date.now() - this.config.logScreenshotLastTime > this.config.logScreenshotMinIntervalInSec * 1000) {
       this.config.logScreenshotLastTime = Date.now();
-      Utils.saveScreenshotToDisk(this.config.logScreenshotFolder, 'log');
+      Utils.saveScreenshotToDisk(this.config.logScreenshotFolder, 'log', true, undefined, DEFAULT_REROUTER_CONFIG.saveImageRoot);
       Utils.removeOldestFilesIfExceedsLimit(this.config.logScreenshotFolder, this.config.logScreenshotMaxFiles);
     }
   }
