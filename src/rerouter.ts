@@ -635,6 +635,10 @@ export class Rerouter {
       return;
     }
 
+    if (this.rerouterConfig.strictMode) {
+      Utils.saveScreenshotToDisk('', `${this.rerouterConfig.deviceId}_conflictedRoutes`, true, image);
+    }
+
     const handler = this.rerouterConfig.conflictRoutesHandler || defaultHandleConflictRoutes;
     handler({
       isStrictMode: this.rerouterConfig.strictMode,
