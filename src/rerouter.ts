@@ -763,11 +763,11 @@ export class Rerouter {
       return;
     }
     // only log when debug + this.debug is true
-    Utils.log('[Rerouter][debug]', ...args);
+    console.log('[Rerouter][debug]', ...args);
   }
 
   private warning(...args: any[]): void {
-    Utils.log('[Rerouter][warning]', ...args);
+    console.log('[Rerouter][warning]', ...args);
   }
 
   public updateGameStatus(status: GameStatus): boolean {
