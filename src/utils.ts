@@ -2,22 +2,6 @@
 import { overrideConsole } from './overrides';
 import { DEFAULT_REROUTER_CONFIG } from './defaults';
 
-export function log(...msgs: any[]) {
-  const date = new Date().toLocaleString('en-US', {
-    timeZone: 'Asia/Taipei',
-  });
-  let message = `[${date}] `;
-  for (const msg of msgs) {
-    if (typeof msg === 'object') {
-      message += `${JSON.stringify(msg)} `;
-    } else {
-      message += `${msg} `;
-    }
-  }
-
-  console.log(message.substr(0, message.length - 1));
-}
-
 export class Utils {
   public static identityColor(e1: RGB, e2: RGB) {
     const mean = (e1.r + e2.r) / 2;
@@ -58,17 +42,6 @@ export class Utils {
     if (during > 0) {
       sleep(during);
     }
-  }
-
-  public static log(...args: any[]) {
-    for (let i = 0; i < args.length; i++) {
-      let arg = args[i];
-      if (typeof arg === 'object') {
-        args[i] = JSON.stringify(arg);
-      }
-    }
-    const header = `[${Utils.timeLabel(overrideConsole.timezoneOffsetHour)}]`;
-    console.log(header, ...args);
   }
 
   public static timeLabel(timezoneOffsetHours: number | undefined = undefined): string {
