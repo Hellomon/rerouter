@@ -1,5 +1,6 @@
 import type { ConfigValue, RerouterConfig, ScreenConfig, RouteConfig, Page, ConflictRoutesHandler } from './struct';
 import { Utils } from './utils';
+import { rerouter } from './rerouter';
 
 export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   packageName: '',
@@ -59,7 +60,7 @@ export const DEFAULT_CONFIG_VALUE: ConfigValue = {
 export const defaultHandleConflictRoutes: ConflictRoutesHandler = ({ isStrictMode, taskName, finishRound }): Error | undefined => {
   if (isStrictMode) {
     // TODO: save image rather than take another screenshot
-    Utils.saveScreenshotToDisk('', `${DEFAULT_REROUTER_CONFIG.deviceId}_conflictedRoutes`);
+    Utils.saveScreenshotToDisk('', `${rerouter.rerouterConfig.deviceId}_conflictedRoutes`);
     return new Error(`conflict detected, task: ${taskName}`);
   }
   console.log(`try handle conflict`);
