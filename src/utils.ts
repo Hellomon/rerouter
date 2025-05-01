@@ -1,6 +1,6 @@
 // FIXME: clear log functions
-import { DEFAULT_REROUTER_CONFIG } from './defaults';
 import { overrideConsole } from './overrides';
+import { rerouter } from './rerouter';
 
 export function log(...msgs: any[]) {
   const date = new Date().toLocaleString('en-US', {
@@ -224,7 +224,7 @@ export class Utils {
     if (folderPath.charAt(0) === '/') {
       folderPath = folderPath.substring(1);
     }
-    folderPath = `${DEFAULT_REROUTER_CONFIG.saveImageRoot}${folderPath}`;
+    folderPath = `${rerouter.rerouterConfig.saveImageRoot}${folderPath}`;
     
     // Use the same timezone handling as overrideConsole
     const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);

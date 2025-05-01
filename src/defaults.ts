@@ -2,6 +2,7 @@ import type { ConfigValue, RerouterConfig, ScreenConfig, RouteConfig, Page, Conf
 import { Utils } from './utils';
 import { rerouter } from './rerouter';
 
+// NOTE: we should not use this config, but use rerouter.rerouterConfig instead
 export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   packageName: '',
   taskDelay: 2000,
@@ -22,6 +23,7 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   saveMatchedScreen: false,
 };
 
+// NOTE: we should not use this config, but use rerouter.screenConfig instead
 export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
   devWidth: 640,
   devHeight: 360,
@@ -39,6 +41,7 @@ export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
   logScreenshotFolder: '',
 };
 
+// NOTE: we should not use this config, but use rerouter.configValue instead
 export const DEFAULT_CONFIG_VALUE: ConfigValue = {
   XYRGBThres: 0.9,
   PageThres: 0.9,
@@ -57,6 +60,7 @@ export const DEFAULT_CONFIG_VALUE: ConfigValue = {
   TaskConfigFindRouteDelay: 2000,
 };
 
+// NOTE: we should not use this function, but use rerouter.rerouterConfig.conflictRoutesHandler instead
 export const defaultHandleConflictRoutes: ConflictRoutesHandler = ({ isStrictMode, taskName, finishRound }): Error | undefined => {
   if (isStrictMode) {
     // TODO: save image rather than take another screenshot
