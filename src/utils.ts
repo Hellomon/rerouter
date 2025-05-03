@@ -46,7 +46,7 @@ export class Utils {
 
   public static timeLabel(timezoneOffsetHours: number | undefined = undefined): string {
     const date = new Date();
-    
+
     // If timezone offset is specified, adjust the date
     if (timezoneOffsetHours !== undefined) {
       const systemOffset = -date.getTimezoneOffset() / 60;
@@ -75,19 +75,19 @@ export class Utils {
     execute(`ANDROID_DATA=/data monkey --pct-syskeys 0 -p ${packageName} -c android.intent.category.LAUNCHER 1`);
     execute(
       'ANDROID_BOOTLOGO=1 ' +
-        'ANDROID_ROOT=/system ' +
-        'ANDROID_ASSETS=/system/app ' +
-        'ANDROID_DATA=/data ' +
-        'ANDROID_STORAGE=/storage ' +
-        'ANDROID_ART_ROOT=/apex/com.android.art ' +
-        'ANDROID_I18N_ROOT=/apex/com.android.i18n ' +
-        'ANDROID_TZDATA_ROOT=/apex/com.android.tzdata ' +
-        'EXTERNAL_STORAGE=/sdcard ' +
-        'ASEC_MOUNTPOINT=/mnt/asec ' +
-        'BOOTCLASSPATH=/apex/com.android.art/javalib/core-oj.jar:/apex/com.android.art/javalib/core-libart.jar:/apex/com.android.art/javalib/core-icu4j.jar:/apex/com.android.art/javalib/okhttp.jar:/apex/com.android.art/javalib/bouncycastle.jar:/apex/com.android.art/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/framework-atb-backward-compatibility.jar:/apex/com.android.conscrypt/javalib/conscrypt.jar:/apex/com.android.media/javalib/updatable-media.jar:/apex/com.android.mediaprovider/javalib/framework-mediaprovider.jar:/apex/com.android.os.statsd/javalib/framework-statsd.jar:/apex/com.android.permission/javalib/framework-permission.jar:/apex/com.android.sdkext/javalib/framework-sdkextensions.jar:/apex/com.android.wifi/javalib/framework-wifi.jar:/apex/com.android.tethering/javalib/framework-tethering.jar ' +
-        'DEX2OATBOOTCLASSPATH=/apex/com.android.art/javalib/core-oj.jar:/apex/com.android.art/javalib/core-libart.jar:/apex/com.android.art/javalib/core-icu4j.jar:/apex/com.android.art/javalib/okhttp.jar:/apex/com.android.art/javalib/bouncycastle.jar:/apex/com.android.art/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/framework-atb-backward-compatibility.jar ' +
-        'SYSTEMSERVERCLASSPATH=/system/framework/com.android.location.provider.jar:/system/framework/services.jar:/system/framework/ethernet-service.jar:/apex/com.android.permission/javalib/service-permission.jar:/apex/com.android.ipsec/javalib/android.net.ipsec.ike.jar ' +
-        `monkey --pct-syskeys 0 -p ${packageName} -c android.intent.category.LAUNCHER 1`
+      'ANDROID_ROOT=/system ' +
+      'ANDROID_ASSETS=/system/app ' +
+      'ANDROID_DATA=/data ' +
+      'ANDROID_STORAGE=/storage ' +
+      'ANDROID_ART_ROOT=/apex/com.android.art ' +
+      'ANDROID_I18N_ROOT=/apex/com.android.i18n ' +
+      'ANDROID_TZDATA_ROOT=/apex/com.android.tzdata ' +
+      'EXTERNAL_STORAGE=/sdcard ' +
+      'ASEC_MOUNTPOINT=/mnt/asec ' +
+      'BOOTCLASSPATH=/apex/com.android.art/javalib/core-oj.jar:/apex/com.android.art/javalib/core-libart.jar:/apex/com.android.art/javalib/core-icu4j.jar:/apex/com.android.art/javalib/okhttp.jar:/apex/com.android.art/javalib/bouncycastle.jar:/apex/com.android.art/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/framework-atb-backward-compatibility.jar:/apex/com.android.conscrypt/javalib/conscrypt.jar:/apex/com.android.media/javalib/updatable-media.jar:/apex/com.android.mediaprovider/javalib/framework-mediaprovider.jar:/apex/com.android.os.statsd/javalib/framework-statsd.jar:/apex/com.android.permission/javalib/framework-permission.jar:/apex/com.android.sdkext/javalib/framework-sdkextensions.jar:/apex/com.android.wifi/javalib/framework-wifi.jar:/apex/com.android.tethering/javalib/framework-tethering.jar ' +
+      'DEX2OATBOOTCLASSPATH=/apex/com.android.art/javalib/core-oj.jar:/apex/com.android.art/javalib/core-libart.jar:/apex/com.android.art/javalib/core-icu4j.jar:/apex/com.android.art/javalib/okhttp.jar:/apex/com.android.art/javalib/bouncycastle.jar:/apex/com.android.art/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/framework-atb-backward-compatibility.jar ' +
+      'SYSTEMSERVERCLASSPATH=/system/framework/com.android.location.provider.jar:/system/framework/services.jar:/system/framework/ethernet-service.jar:/apex/com.android.permission/javalib/service-permission.jar:/apex/com.android.ipsec/javalib/android.net.ipsec.ike.jar ' +
+      `monkey --pct-syskeys 0 -p ${packageName} -c android.intent.category.LAUNCHER 1`
     );
   }
 
@@ -170,6 +170,19 @@ export class Utils {
     });
   }
 
+  public static sendActivityLog(apiKey: string, licenseId: string, base64Image: string, category: string, msg: string) {
+    const body = {
+      apiKey: apiKey,
+      licenseId: licenseId,
+      base64Image: base64Image,
+      category: category,
+      msg: msg,
+    };
+    httpClient('POST', 'https://asia-east1-robotmon-98370.cloudfunctions.net/xGameAPI-saveActivityLog', JSON.stringify(body), {
+      'Content-Type': 'application/json',
+    });
+  }
+
   public static waitForAction(action: () => boolean, timeout: number, matchTimes: number = 1, interval = 600): boolean {
     const now = Date.now();
     let matchs = 0;
@@ -197,11 +210,11 @@ export class Utils {
       folderPath = folderPath.substring(1);
     }
     folderPath = `${saveImageRoot}${folderPath}`;
-    
+
     // Use the same timezone handling as overrideConsole
     const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);
     const [datePart, timePart] = timeStr.split(' ');
-    const filename = timestamp 
+    const filename = timestamp
       ? `${datePart}T${timePart.replace(/:/g, '.')}_${suffix}.png`
       : `${suffix}.png`;
 
