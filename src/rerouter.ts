@@ -1,7 +1,7 @@
 import { RerouterConfig, RouteConfig, ScreenConfig, TaskConfig, Task, RouteContext, Page, GroupPage, ConfigValue, GameStatus, EventName } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
-import { updateGameStatus } from './xr';
+import { updateGameStatus, sendActivityLog } from './xr';
 
 import { overrideConsole } from './overrides';
 import { DEFAULT_REROUTER_CONFIG, DEFAULT_SCREEN_CONFIG, DEFAULT_CONFIG_VALUE, defaultHandleConflictRoutes } from './defaults';
@@ -851,6 +851,22 @@ export class Rerouter {
 
   public getGameStatus(): GameStatus | null {
     return this.localGameStatus;
+  }
+
+  public sendActivityLog(category: string, base64Image: string, msg: string): boolean {
+    // If instanceId is empty, skip sending activity log
+    if (!this.rerouterConfig.instanceId) {
+      console.warn('Instance ID is empty. Skipping activity log sending.');
+      return false;
+    }
+
+    try {
+      sendActivityLog(this.rerouterConfig.instanceId, category, base64Image, msg);
+      return true;
+    } catch (error) {
+      console.error('Failed to send activity log:', error);
+      return false;
+    }
   }
 }
 

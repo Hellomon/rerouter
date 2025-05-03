@@ -170,19 +170,6 @@ export class Utils {
     });
   }
 
-  public static sendActivityLog(apiKey: string, licenseId: string, category: string, base64Image: string, msg: string) {
-    const body = {
-      apiKey: apiKey,
-      licenseId: licenseId,
-      base64Image: base64Image,
-      category: category,
-      msg: msg,
-    };
-    httpClient('POST', 'https://asia-east1-robotmon-98370.cloudfunctions.net/xGameAPI-saveActivityLog', JSON.stringify(body), {
-      'Content-Type': 'application/json',
-    });
-  }
-
   public static waitForAction(action: () => boolean, timeout: number, matchTimes: number = 1, interval = 600): boolean {
     const now = Date.now();
     let matchs = 0;
