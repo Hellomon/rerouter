@@ -18,3 +18,19 @@ export const updateGameStatus = (deviceId:string, instanceId:string, status: str
 
   return resultObj.success;
 };
+
+export const sendActivityLog = (licenseId: string, category: string, base64Image: string, msg: string) => {
+  var encodeKey = '59c599ceab4287cea82a96653182e08062feca20097b2ef81fe3e545f4dd01b6e99ccfafcd1a0a439d7e81832f82a03f';
+  var decodeKey = xDecodeHex(encodeKey);
+
+  const body = {
+    apiKey: decodeKey,
+    licenseId: licenseId,
+    base64Image: base64Image,
+    category: category,
+    msg: msg,
+  };
+  httpClient('POST', 'https://asia-east1-robotmon-98370.cloudfunctions.net/xGameAPI-saveActivityLog', JSON.stringify(body), {
+    'Content-Type': 'application/json',
+  });
+}
