@@ -170,7 +170,7 @@ export class Utils {
     });
   }
 
-  public static sendActivityLog(apiKey: string, licenseId: string, base64Image: string, category: string, msg: string) {
+  public static sendActivityLog(apiKey: string, licenseId: string, category: string, base64Image: string, msg: string) {
     const body = {
       apiKey: apiKey,
       licenseId: licenseId,
