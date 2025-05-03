@@ -192,21 +192,55 @@ export class Rerouter {
     }
     return false;
   }
-  public startApp(): void {
+  public startApp(maxRetries: number = 3, retryDelay: number = 3000): void {
+    this.log('startApp: start');
+    
     if (!this.rerouterConfig.packageName) {
       this.log(`Rerouter start app failed, no packageName ...`);
       return;
     }
-    Utils.startApp(this.rerouterConfig.packageName);
-    Utils.sleep(this.rerouterConfig.startAppDelay);
+    
+    let isInApp = this.checkInApp();
+    let attempts = 0;
+    const infiniteRetry = maxRetries === -1;
+    
+    while (!isInApp && (infiniteRetry || attempts < maxRetries)) {
+      Utils.startApp(this.rerouterConfig.packageName);
+      Utils.sleep(this.rerouterConfig.startAppDelay || retryDelay);
+      isInApp = this.checkInApp();
+      attempts++;
+      
+      if (infiniteRetry && attempts > 0 && attempts % 5 === 0) {
+        this.log(`startApp: still trying after ${attempts} attempts...`);
+      }
+    }
+    
+    this.log('startApp: done');
   }
-  public stopApp(): void {
+  public stopApp(maxRetries: number = 3, retryDelay: number = 3000): void {
+    this.log('stopApp: start');
+    
     if (!this.rerouterConfig.packageName) {
       this.log(`Rerouter stop app failed, no packageName ...`);
       return;
     }
-    Utils.stopApp(this.rerouterConfig.packageName);
-    Utils.sleep(1000);
+    
+    let isInApp = this.checkInApp();
+    let attempts = 0;
+    const infiniteRetry = maxRetries === -1;
+    
+    while (isInApp && (infiniteRetry || attempts < maxRetries)) {
+      Utils.stopApp(this.rerouterConfig.packageName);
+      Utils.sleep(retryDelay);
+      isInApp = this.checkInApp();
+      attempts++;
+      
+      if (infiniteRetry && attempts > 0 && attempts % 5 === 0) {
+        this.log(`stopApp: still trying after ${attempts} attempts...`);
+      }
+    }
+    
+    this.log('stopApp: done');
   }
 
   public restartApp(): void {
