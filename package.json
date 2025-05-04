@@ -1,5 +1,5 @@
 {
-  "name": "rerouter",
+  "name": "robotmon-rerouter",
   "version": "1.0.0",
   "description": "robotmon rerouter framework",
   "main": "dist/index.js",
