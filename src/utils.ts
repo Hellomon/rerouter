@@ -222,32 +222,35 @@ export class Utils {
     }
     folderPath = `${saveImageRoot}${folderPath}`;
 
-    const fileList = execute(`ls -l ${folderPath}`).split('\n');
-
-    // Some OS return first line total 8 (Mac, redroid), some not (Memu)
-    if (fileList[0] && fileList[0].indexOf('total') === 0) {
-      fileList.shift();
-    }
-
-    const filesWithDates = fileList.map(line => {
-      const parts = line.trim().split(' ');
-      const filename = parts[parts.length - 1]; // 2023-09-02T15.08.17_log.png
-      const dateObj = new Date(parts[parts.length - 3].split('_')[0]);
-
+    // Get all files with their timestamps in one command, only in the first level directory
+    // Format: timestamp filename
+    const findOutput = execute(`find ${folderPath} -maxdepth 1 -type f -printf "%T@ %f\n"`).split('\n').filter(line => line.trim() !== '');
+    
+    const filesWithDates = findOutput.map(line => {
+      const [timestamp, filename] = line.trim().split(' ');
       return {
-        date: dateObj,
+        timestamp: parseFloat(timestamp),
         filename: filename,
       };
     });
 
-    filesWithDates.sort((a, b) => a.date.getTime() - b.date.getTime());
+    filesWithDates.sort((a, b) => a.timestamp - b.timestamp);
 
     // If there are more than ${maxFiles} files, remove the oldest
-    while (filesWithDates.length > maxFiles) {
-      const oldestFile = filesWithDates.shift();
-      if (oldestFile) {
-        execute(`rm ${folderPath}/${oldestFile.filename}`);
-        console.log(`rm: ${folderPath}/${oldestFile.filename}`);
+    if (filesWithDates.length > maxFiles) {
+      const filesToDelete = filesWithDates.slice(0, filesWithDates.length - maxFiles);
+      const BATCH_SIZE = 100; // Process 100 files at a time
+      let deletedCount = 0;
+
+      // Process files in batches
+      for (let i = 0; i < filesToDelete.length; i += BATCH_SIZE) {
+        const batch = filesToDelete.slice(i, i + BATCH_SIZE);
+        const fullPaths = batch.map(f => `${folderPath}/${f.filename}`).join(' ');
+        
+        // Batch delete files using a single rm command
+        execute(`rm ${fullPaths}`);
+        deletedCount += batch.length;
+        console.log(`Removed batch of ${batch.length} files (total: ${deletedCount}/${filesToDelete.length}) from ${folderPath}`);
       }
     }
   }
