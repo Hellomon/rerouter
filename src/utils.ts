@@ -216,7 +216,12 @@ export class Utils {
     console.log(`Write to file: ${folderPath}/${filename}`);
   }
 
-  public static removeOldestFilesIfExceedsLimit(folderPath: string, maxFiles: number = 100): void {
+  public static removeOldestFilesIfExceedsLimit(folderPath: string, maxFiles: number = 100, saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot): void {
+    if (folderPath.charAt(0) === '/') {
+      folderPath = folderPath.substring(1);
+    }
+    folderPath = `${saveImageRoot}${folderPath}`;
+
     const fileList = execute(`ls -l ${folderPath}`).split('\n');
 
     // Some OS return first line total 8 (Mac, redroid), some not (Memu)
