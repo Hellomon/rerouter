@@ -29,6 +29,11 @@ export class Rerouter {
   private localGameStatus: GameStatus | null = null;
   private cloudGameStatus: GameStatus | null = null;
 
+  // for screen frozen detection
+  private lastScreenshotImage: any | null = null;
+  private lastCheckScreenFrozenTime: number = 0;
+  private screenFrozenTimes: number = 0;
+
   private static instance: Rerouter | undefined;
 
   private constructor() {}
@@ -194,52 +199,52 @@ export class Rerouter {
   }
   public startApp(maxRetries: number = 3, retryDelay: number = 3000): void {
     this.log('startApp: start');
-    
+
     if (!this.rerouterConfig.packageName) {
       this.log(`Rerouter start app failed, no packageName ...`);
       return;
     }
-    
+
     let isInApp = this.checkInApp();
     let attempts = 0;
     const infiniteRetry = maxRetries === -1;
-    
+
     while (!isInApp && (infiniteRetry || attempts < maxRetries)) {
       Utils.startApp(this.rerouterConfig.packageName);
       Utils.sleep(this.rerouterConfig.startAppDelay || retryDelay);
       isInApp = this.checkInApp();
       attempts++;
-      
+
       if (infiniteRetry && attempts > 0 && attempts % 5 === 0) {
         this.log(`startApp: still trying after ${attempts} attempts...`);
       }
     }
-    
+
     this.log('startApp: done');
   }
   public stopApp(maxRetries: number = 3, retryDelay: number = 3000): void {
     this.log('stopApp: start');
-    
+
     if (!this.rerouterConfig.packageName) {
       this.log(`Rerouter stop app failed, no packageName ...`);
       return;
     }
-    
+
     let isInApp = this.checkInApp();
     let attempts = 0;
     const infiniteRetry = maxRetries === -1;
-    
+
     while (isInApp && (infiniteRetry || attempts < maxRetries)) {
       Utils.stopApp(this.rerouterConfig.packageName);
       Utils.sleep(retryDelay);
       isInApp = this.checkInApp();
       attempts++;
-      
+
       if (infiniteRetry && attempts > 0 && attempts % 5 === 0) {
         this.log(`stopApp: still trying after ${attempts} attempts...`);
       }
     }
-    
+
     this.log('stopApp: done');
   }
 
@@ -488,6 +493,8 @@ export class Rerouter {
     // pointer for short code
     const context = this.routeContext;
     while (routeLoop && this.running) {
+      this.checkScreenFrozen();
+
       const now = Date.now();
 
       // check task.autoStop
@@ -866,6 +873,37 @@ export class Rerouter {
     } catch (error) {
       console.error('Failed to send activity log:', error);
       return false;
+    }
+  }
+
+  public checkScreenFrozen(): void {
+    const now = Date.now();
+    if (now - this.lastCheckScreenFrozenTime < 60 * 1000) {
+      return;
+    }
+    this.lastCheckScreenFrozenTime = now;
+
+    if (this.lastScreenshotImage === null) {
+      this.lastScreenshotImage = this.screen.getCvtDevScreenshot();
+      return;
+    }
+
+    const currentImage = this.screen.getCvtDevScreenshot();
+    const score = getIdentityScore(currentImage, this.lastScreenshotImage);
+    console.log(`checkScreenFrozen: score: ${score}`);
+    if (score === 1) {
+      this.screenFrozenTimes++;
+      this.log(`Screen is frozen, times ${this.screenFrozenTimes}`);
+    } else {
+      this.screenFrozenTimes = 0;
+    }
+    releaseImage(this.lastScreenshotImage);
+    this.lastScreenshotImage = currentImage;
+
+    if (this.screenFrozenTimes >= 10) {
+      this.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
+      releaseImage(this.lastScreenshotImage);
+      execute('reboot -p');
     }
   }
 }
