@@ -248,6 +248,10 @@ export class Rerouter {
     this.log('stopApp: done');
   }
 
+  public stopEmulator(): void {
+    execute('reboot -p');
+  }
+
   public restartApp(): void {
     this.stopApp();
     this.startApp();
@@ -903,7 +907,7 @@ export class Rerouter {
     if (this.screenFrozenTimes >= 10) {
       console.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
       releaseImage(this.lastScreenshotImage);
-      execute('reboot -p');
+      this.stopEmulator();
     }
   }
 }
