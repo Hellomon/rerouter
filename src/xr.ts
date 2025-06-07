@@ -34,3 +34,19 @@ export const sendActivityLog = (licenseId: string, category: string, base64Image
     'Content-Type': 'application/json',
   });
 }
+
+export const sendLog = (channel: string, level: string, title: string, message: string) => {
+  var encodeKey = '771ddf6567977bfb72a0ca364b8e044cd4d467ef32f9f0a70fe1e2cb02c380db93edc757b16a94e9f40305966752ccf1';
+  var decodeKey = xDecodeHex(encodeKey);
+
+  const body = {
+    apiKey: decodeKey,
+    channel: channel,
+    level: level,
+    title: title,
+    message: message,
+  };
+  httpClient('POST', 'https://asia-east1-robotmon-98370.cloudfunctions.net/xLoggingAPI-log', JSON.stringify(body), {
+    'Content-Type': 'application/json',
+  });
+}

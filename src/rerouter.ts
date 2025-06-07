@@ -1,7 +1,7 @@
 import { RerouterConfig, RouteConfig, ScreenConfig, TaskConfig, Task, RouteContext, Page, GroupPage, ConfigValue, GameStatus, EventName } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
-import { updateGameStatus, sendActivityLog } from './xr';
+import { updateGameStatus as xrUpdateGameStatus, sendActivityLog as xrSendActivityLog, sendLog as xrSendLog } from './xr';
 
 import { overrideConsole } from './overrides';
 import { DEFAULT_REROUTER_CONFIG, DEFAULT_SCREEN_CONFIG, DEFAULT_CONFIG_VALUE, defaultHandleConflictRoutes } from './defaults';
@@ -841,7 +841,7 @@ export class Rerouter {
     let attempts = 0;
 
     while (true) {
-      const result = updateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
+      const result = xrUpdateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
 
       if (result === true) {
         this.cloudGameStatus = status; // Update cloud status on success
@@ -872,10 +872,22 @@ export class Rerouter {
     }
 
     try {
-      sendActivityLog(this.rerouterConfig.instanceId, category, base64Image, msg);
+      xrSendActivityLog(this.rerouterConfig.instanceId, category, base64Image, msg);
       return true;
     } catch (error) {
       console.error('Failed to send activity log:', error);
+      return false;
+    }
+  }
+
+  public sendLog(channel: string, level: string, title: string, message: string): boolean {
+    try {
+      const userInfo = `deviceId: ${this.rerouterConfig.deviceId}\nlicenseId: ${this.rerouterConfig.instanceId || 'DEBUG'}\n`;
+      message = userInfo + message;
+      xrSendLog(channel, level, title, message);
+      return true;
+    } catch (error) {
+      console.error('Failed to send log:', error);
       return false;
     }
   }
@@ -907,6 +919,7 @@ export class Rerouter {
     if (this.screenFrozenTimes >= 10) {
       console.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
       releaseImage(this.lastScreenshotImage);
+      this.sendLog('Rerouter', 'warning', 'ScreenFrozen', 'Screen is frozen for more than 10 times (minutes), restarting emulator...');
       this.stopEmulator();
     }
   }

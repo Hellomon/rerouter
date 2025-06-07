@@ -157,18 +157,7 @@ export class Utils {
     });
   }
 
-  public static sendLog(apiKey: string, channel: string, level: string, title: string, message: string) {
-    const body = {
-      apiKey: apiKey,
-      channel: channel,
-      level: level,
-      title: title,
-      message: message,
-    };
-    httpClient('POST', 'https://asia-east1-robotmon-98370.cloudfunctions.net/xLoggingAPI-log', JSON.stringify(body), {
-      'Content-Type': 'application/json',
-    });
-  }
+
 
   public static waitForAction(action: () => boolean, timeout: number, matchTimes: number = 1, interval = 600): boolean {
     const now = Date.now();
