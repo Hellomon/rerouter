@@ -891,7 +891,7 @@ export class Rerouter {
     const currentImage = this.screen.getCvtDevScreenshot();
     const score = getIdentityScore(currentImage, this.lastScreenshotImage);
     console.log(`checkScreenFrozen: score: ${score}`);
-    if (score === 1) {
+    if (score > 0.999) {
       this.screenFrozenTimes++;
       this.log(`Screen is frozen, times ${this.screenFrozenTimes}`);
     } else {
