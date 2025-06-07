@@ -893,7 +893,7 @@ export class Rerouter {
     console.log(`checkScreenFrozen: score: ${score}`);
     if (score > 0.999) {
       this.screenFrozenTimes++;
-      this.log(`Screen is frozen, times ${this.screenFrozenTimes}`);
+      console.log(`Screen is frozen, times ${this.screenFrozenTimes}`);
     } else {
       this.screenFrozenTimes = 0;
     }
@@ -901,7 +901,7 @@ export class Rerouter {
     this.lastScreenshotImage = currentImage;
 
     if (this.screenFrozenTimes >= 10) {
-      this.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
+      console.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
       releaseImage(this.lastScreenshotImage);
       execute('reboot -p');
     }
