@@ -236,6 +236,10 @@ export class Screen {
     return 'vertical';
   }
 
+  public keycode(code: string): void {
+    keycode(code, this.config.actionDuring);
+  }
+
   public setActionDuring(during: number) {
     this.config.actionDuring = during;
   }
