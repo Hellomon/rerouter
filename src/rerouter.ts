@@ -497,7 +497,9 @@ export class Rerouter {
     // pointer for short code
     const context = this.routeContext;
     while (routeLoop && this.running) {
-      this.checkScreenFrozen();
+      if (this.rerouterConfig.checkFrozenScreen) {
+        this.checkScreenFrozen();
+      }
 
       const now = Date.now();
 

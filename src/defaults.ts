@@ -10,6 +10,7 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   instanceId: '',
   deviceId: '',
   strictMode: false,
+  checkFrozenScreen: true,
   debugSlackUrl: '',
   logger: {
     overrideGlobalConsole: false,

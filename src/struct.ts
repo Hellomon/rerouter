@@ -192,6 +192,7 @@ export interface RerouterConfig {
   instanceId: string; // the ID of the framework instance
   deviceId: string; // the ID of the device the framework runs on
   strictMode: boolean;
+  checkFrozenScreen: boolean; // enable/disable screen frozen detection
   savePageReference?: {
     enable: boolean;
     folderPath: string;
