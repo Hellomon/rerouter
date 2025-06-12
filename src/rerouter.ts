@@ -632,14 +632,14 @@ export class Rerouter {
           matchedPages.map(p => p.name)
         );
         
-        // If this is the first match or same priority as current matches
+        // First match found - set as current highest priority
         if (currentHighestPriority === null) {
           currentHighestPriority = route.priority;
-          matches.push({ matchedRoute: route, matchedPages });
-        } else if (route.priority === currentHighestPriority) {
-          matches.push({ matchedRoute: route, matchedPages });
         }
-        // If route.priority < currentHighestPriority, we would have broken out of the loop above
+        
+        // Add match (either first match or same priority as existing matches)
+        // Note: route.priority < currentHighestPriority is impossible here due to early break above
+        matches.push({ matchedRoute: route, matchedPages });
       }
     }
     return matches;
