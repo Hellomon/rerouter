@@ -539,41 +539,24 @@ export class Rerouter {
       context.matchDuring = now - context.matchStartTS;
       context.matchTimes++;
 
-      switch (matches.length) {
-        case 0:
-          // no match
-          if (this.unknownRouteAction !== null) {
-            this.unknownRouteAction(context, image, finishRoundFunc);
-          }
-          break;
-        case 1:
-          // perfect match 1
-          if (this.rerouterConfig.saveMatchedScreen) {
-            Utils.saveScreenshotToDisk('matched', `${matches[0].matchedRoute.path}`, false, image, this.rerouterConfig.saveImageRoot);
-          }
-
-          this.doActionForRoute(context, image, matchedRoute, matchedPages, finishRoundFunc);
-          break;
-        default:
-          // compare priority
-          const highestPriority = Math.max(...matches.map(item => item.matchedRoute.priority));
-          const matchesWithHighestPriority = matches.filter(item => item.matchedRoute.priority === highestPriority);
-
-          if (matchesWithHighestPriority.length === 1) {
-            // perfect match 1
-            if (this.rerouterConfig.saveMatchedScreen) {
-              Utils.saveScreenshotToDisk('matched', `${matchesWithHighestPriority[0].matchedRoute.path}`, false, image, this.rerouterConfig.saveImageRoot);
-            }
-            this.doActionForRoute(context, image, matchesWithHighestPriority[0].matchedRoute, matchesWithHighestPriority[0].matchedPages, finishRoundFunc);
-          } else {
-            // conflict, multiple matches
-            const error = this.handleConflictRoutes(task.name, image, matchesWithHighestPriority, finishRoundFunc);
-            if (error) {
-              releaseImage(image);
-              throw error;
-            }
-          }
-          break;
+      if (matches.length === 0) {
+        // no match
+        if (this.unknownRouteAction !== null) {
+          this.unknownRouteAction(context, image, finishRoundFunc);
+        }
+      } else if (matches.length === 1) {
+        // single match with highest priority
+        if (this.rerouterConfig.saveMatchedScreen) {
+          Utils.saveScreenshotToDisk('matched', `${matches[0].matchedRoute.path}`, false, image, this.rerouterConfig.saveImageRoot);
+        }
+        this.doActionForRoute(context, image, matchedRoute, matchedPages, finishRoundFunc);
+      } else {
+        // conflict: multiple matches with same highest priority
+        const error = this.handleConflictRoutes(task.name, image, matches, finishRoundFunc);
+        if (error) {
+          releaseImage(image);
+          throw error;
+        }
       }
 
       // update lastMatchedPath after action done
@@ -632,8 +615,15 @@ export class Rerouter {
       matchedRoute: Required<RouteConfig>;
       matchedPages: Page[];
     }[] = [];
+    let currentHighestPriority: number | null = null;
 
+    // routes are already sorted by priority (high to low) in init()
     for (const route of this.routes) {
+      // If we already found matches with higher priority, skip lower priority routes
+      if (currentHighestPriority !== null && route.priority < currentHighestPriority) {
+        break;
+      }
+
       const { isMatched, matchedPages } = this.isMatchRouteImpl(image, rotation, route, taskName);
       if (isMatched) {
         this.logImpl(
@@ -641,6 +631,14 @@ export class Rerouter {
           'current match:',
           matchedPages.map(p => p.name)
         );
+        
+        // First match found - set as current highest priority
+        if (currentHighestPriority === null) {
+          currentHighestPriority = route.priority;
+        }
+        
+        // Add match (either first match or same priority as existing matches)
+        // Note: route.priority < currentHighestPriority is impossible here due to early break above
         matches.push({ matchedRoute: route, matchedPages });
       }
     }
