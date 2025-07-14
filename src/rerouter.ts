@@ -631,12 +631,12 @@ export class Rerouter {
           'current match:',
           matchedPages.map(p => p.name)
         );
-        
+
         // First match found - set as current highest priority
         if (currentHighestPriority === null) {
           currentHighestPriority = route.priority;
         }
-        
+
         // Add match (either first match or same priority as existing matches)
         // Note: route.priority < currentHighestPriority is impossible here due to early break above
         matches.push({ matchedRoute: route, matchedPages });
@@ -769,19 +769,29 @@ export class Rerouter {
 
   private isMatchGroupPageImpl(image: Image, groupPage: GroupPage, parentThres: number, debug: boolean): Page[] {
     const thres = groupPage.thres ?? parentThres;
+    const matchedPages: Page[] = [];
+
+    // First, collect all actually matched pages
     for (let i = 0; i < groupPage.pages.length; i++) {
       const page = groupPage.pages[i];
       const isPageMatch = this.isMatchPageImpl(image, page, thres, debug);
       this.logImpl(debug, `checkMatchGroupPage: ${groupPage.name}, page[${i}]: ${page.name} match: ${isPageMatch}`);
 
-      if (groupPage.matchOP === '||' && isPageMatch) {
-        return [page];
-      }
-      if (groupPage.matchOP === '&&' && !isPageMatch) {
-        return [];
+      if (isPageMatch) {
+        matchedPages.push(page);
       }
     }
-    return groupPage.matchOP === '&&' ? groupPage.pages : [];
+
+    // Then decide what to return based on matchOP
+    if (groupPage.matchOP === '||') {
+      // OR: return all matched pages if any match
+      return matchedPages.length > 0 ? matchedPages : [];
+    } else if (groupPage.matchOP === '&&') {
+      // AND: return all matched pages only if ALL pages match
+      return matchedPages.length === groupPage.pages.length ? matchedPages : [];
+    }
+
+    return matchedPages;
   }
 
   private savePageReferenceImage(image: Image, matchedPages: Page[]): void {
