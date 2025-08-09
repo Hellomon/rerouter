@@ -4,8 +4,18 @@
   "description": "robotmon rerouter framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-
-
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./test": {
+      "import": "./dist/src/test/index.js",
+      "require": "./dist/src/test/index.js",
+      "types": "./dist/src/test/index.d.ts"
+    }
+  },
   "scripts": {
     "clean": "rm -r ./dist || true",
     "build": "npm run clean && tsc",
