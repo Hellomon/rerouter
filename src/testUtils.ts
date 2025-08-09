@@ -22,8 +22,6 @@ export type RouteImageFolderTestOptions = {
   debug?: boolean;
   // Where to write an aggregated error log; set null to disable writing
   writeErrorLogPath?: string | null;
-  // Whether to enforce filename to match either first matched page name or route first path segment
-  enforceNameMatch?: boolean;
   // Print per-image progress
   verbose?: boolean;
 };
@@ -54,15 +52,7 @@ function installJimpGetImageColor(): void {
  * enforceNameMatch is true and the filename doesn't match matched page/route.
  */
 export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): void {
-  const {
-    setupRoutes,
-    screenshotsPath,
-    rotation = 'horizontal',
-    debug = false,
-    writeErrorLogPath = 'errorLog.txt',
-    enforceNameMatch = true,
-    verbose = true,
-  } = options;
+  const { setupRoutes, screenshotsPath, rotation = 'horizontal', debug = false, writeErrorLogPath = 'errorLog.txt', verbose = true } = options;
 
   // Allow tests to re-run cleanly
   rerouter.reset();
@@ -83,7 +73,8 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   for (const file of files) {
     if (!file.endsWith('.png')) {
       if (verbose) {
-        console.log(`[rerouter:test] Skipping non-png file: ${file}`);
+        // original log style from legacy routeTest.ts
+        console.log(`Skipping non-png file: ${file}`);
       }
       continue;
     }
@@ -97,38 +88,11 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
     const matches: { matchedRoute: Required<RouteConfig>; matchedPages: Page[] }[] = (rerouter as any).findMatchedRouteImpl('', imageData, rotation);
 
     if (matches.length === 0) {
-      if (verbose) {
-        console.log(`[rerouter:test] No match for file: ${file}`);
-      }
       handleNoMatches(file, errorMessages);
     } else if (matches.length === 1) {
-      const matchedRoute = matches[0].matchedRoute;
-      const pageNames = matches[0].matchedPages
-        .map(function (p) {
-          return p.name;
-        })
-        .join(', ');
-      if (verbose) {
-        console.log(`[rerouter:test] Matched file: ${file} -> ${matchedRoute.path} [${pageNames}]`);
-      }
-      handleSingleMatch(file, matches[0], errorMessages, enforceNameMatch);
+      handleSingleMatch(file, matches[0], errorMessages, verbose);
     } else if (matches.length > 1) {
-      if (verbose) {
-        var list = matches.map(function (m) {
-          return (
-            m.matchedRoute.path +
-            ' [' +
-            m.matchedPages
-              .map(function (p) {
-                return p.name;
-              })
-              .join(', ') +
-            ']'
-          );
-        });
-        console.log(`[rerouter:test] Multiple matches for file: ${file} -> ${list.join(' | ')}`);
-      }
-      handleMultipleMatches(file, matches, errorMessages);
+      handleMultipleMatches(file, matches, errorMessages, verbose);
     }
   }
 
@@ -146,10 +110,7 @@ function handleNoMatches(file: string, errorMessages: string[]) {
   errorMessages.push(`No matching route found for the image file: ${file}`);
 }
 
-function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; matchedPages: Page[] }, errorMessages: string[], enforceNameMatch: boolean) {
-  if (!enforceNameMatch) {
-    return;
-  }
+function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; matchedPages: Page[] }, errorMessages: string[], verbose: boolean) {
   const matchedRoute: RouteConfig = match.matchedRoute;
   const matchedPages: Page[] = match.matchedPages;
 
@@ -160,6 +121,15 @@ function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; mat
   const isExactMatchRoutePath = routePathWithoutHeadSlash === fileNameWithOnlyFirstName;
 
   if (isExactMatchPageName || isExactMatchRoutePath) {
+    if (verbose) {
+      console.log(
+        `Exact match found for file: ${file} with the pages [${matchedPages
+          .map(function (p) {
+            return p.name;
+          })
+          .join(', ')}] in route ${matchedRoute.path}`
+      );
+    }
     return;
   }
 
@@ -170,9 +140,17 @@ function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; mat
   );
 }
 
-function handleMultipleMatches(file: string, matches: { matchedRoute: Required<RouteConfig>; matchedPages: Page[] }[], errorMessages: string[]) {
+function handleMultipleMatches(
+  file: string,
+  matches: { matchedRoute: Required<RouteConfig>; matchedPages: Page[] }[],
+  errorMessages: string[],
+  verbose: boolean
+) {
   const highToLow = matches.sort((a, b) => b.matchedRoute.priority - a.matchedRoute.priority);
   if (highToLow[0].matchedRoute.priority > highToLow[1].matchedRoute.priority) {
+    if (verbose) {
+      console.log(`Priority match found for file: ${file} with the highest route ${highToLow[0].matchedRoute}`);
+    }
     return;
   }
 
