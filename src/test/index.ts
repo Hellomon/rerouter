@@ -1,5 +1,5 @@
-import { rerouter } from './rerouter';
-import { Page, RouteConfig } from './struct';
+import { rerouter } from '../rerouter';
+import { Page, RouteConfig } from '../struct';
 
 // Keep imports minimal to avoid pulling in test frameworks
 // Use require to avoid needing Node types in the library build
