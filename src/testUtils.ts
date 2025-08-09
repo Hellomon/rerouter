@@ -32,7 +32,7 @@ export type RouteImageFolderTestOptions = {
  * Install a Node/Jimp-compatible global.getImageColor for test usage.
  * Jimp always decodes as RGBA.
  */
-export function installJimpGetImageColor(): void {
+function installJimpGetImageColor(): void {
   const g: any = (typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : {}) as any;
   if (g) {
     g.getImageColor = (imageData: any, x: number, y: number): RGB => {
@@ -67,6 +67,8 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   // Allow tests to re-run cleanly
   rerouter.reset();
   rerouter.debug = !!debug;
+  // Ensure getImageColor is available in Node/Jimp env
+  installJimpGetImageColor();
 
   // Execute route setup (synchronously expected)
   setupRoutes();
