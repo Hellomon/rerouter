@@ -16,6 +16,13 @@
       "types": "./dist/src/test/index.d.ts"
     }
   },
+  "typesVersions": {
+    "*": {
+      "test": [
+        "dist/src/test/index.d.ts"
+      ]
+    }
+  },
   "scripts": {
     "clean": "rm -r ./dist || true",
     "build": "npm run clean && tsc",
