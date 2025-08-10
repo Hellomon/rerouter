@@ -25,8 +25,9 @@
   },
   "scripts": {
     "clean": "rm -r ./dist || true",
-    "build": "npm run clean && npm i && tsc",
-    "prepare": "npm run build"
+    "compile": "npm run clean && tsc",
+    "build": "npm i && npm run compile",
+    "prepare": "npm run compile"
   },
   "author": "robotmon",
   "license": "ISC",
