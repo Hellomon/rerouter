@@ -120,7 +120,7 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
 }
 
 function handleNoMatches(file: string, errorMessages: string[]) {
-  errorMessages.push(`No matching route found for the image file: ${file}`);
+  errorMessages.push(`No route matches image ${file}`);
 }
 
 function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; matchedPages: Page[] }, errorMessages: string[], verbose: boolean) {
@@ -146,10 +146,11 @@ function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; mat
     return;
   }
 
+  const totalPages = matchedRoute.match && 'pages' in matchedRoute.match ? matchedRoute.match.pages.length : 1;
   errorMessages.push(
-    `Mismatch: Image file ${file} did not find an exact path for route ${matchedRoute.path}, which includes pages [${matchedPages
+    `Mismatch: Image file ${file} (expected: ${fileNameWithOnlyFirstName}) matched route ${matchedRoute.path} but only found pages [${matchedPages
       .map(page => page.name)
-      .join(', ')}]` + JSON.stringify({ matchedPages, matchedRoute }, null, 2)
+      .join(', ')}]. Route has ${totalPages} total pages.`
   );
 }
 
@@ -175,6 +176,5 @@ function handleMultipleMatches(
       break;
     }
   }
-  const errorText = `Multiple matching routes found for the image file: ${file}; Conflicting routes: ${conflictingRoutes.join(', ')}`;
-  errorMessages.push(errorText);
+  errorMessages.push(`Multiple routes match image ${file}: [${conflictingRoutes.join(', ')}] (all priority ${highToLow[0].matchedRoute.priority})`);
 }
