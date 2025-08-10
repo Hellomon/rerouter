@@ -11,15 +11,15 @@
       "types": "./dist/index.d.ts"
     },
     "./test": {
-      "import": "./dist/src/testUtils.js",
-      "require": "./dist/src/testUtils.js",
-      "types": "./dist/src/testUtils.d.ts"
+      "import": "./dist/src/test/index.js",
+      "require": "./dist/src/test/index.js",
+      "types": "./dist/src/test/index.d.ts"
     }
   },
   "typesVersions": {
     "*": {
       "test": [
-        "dist/src/testUtils.d.ts"
+        "dist/src/test/index.d.ts"
       ]
     }
   },
