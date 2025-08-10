@@ -11,21 +11,6 @@ const fs = require('fs');
 const path = require('path');
 const Jimp = require('jimp');
 
-export type RouteImageFolderTestOptions = {
-  // Caller should add all routes to the global rerouter instance inside this callback
-  setupRoutes: () => void | Promise<void>;
-  // Absolute path to a folder containing .png screenshots to validate
-  screenshotsPath: string;
-  // Screen rotation used for matching
-  rotation?: 'horizontal' | 'vertical';
-  // Enable rerouter debug prints
-  debug?: boolean;
-  // Where to write an aggregated error log; set null to disable writing
-  writeErrorLogPath?: string | null;
-  // Print per-image progress
-  verbose?: boolean;
-};
-
 /**
  * Install a Node/Jimp-compatible global.getImageColor for test usage.
  * Jimp always decodes as RGBA.
@@ -57,6 +42,25 @@ function installRobotmonGlobals(): void {
   }
 }
 
+// Auto-install test globals when this module is imported
+installJimpGetImageColor();
+installRobotmonGlobals();
+
+export type RouteImageFolderTestOptions = {
+  // Caller should add all routes to the global rerouter instance inside this callback
+  setupRoutes: () => void | Promise<void>;
+  // Absolute path to a folder containing .png screenshots to validate
+  screenshotsPath: string;
+  // Screen rotation used for matching
+  rotation?: 'horizontal' | 'vertical';
+  // Enable rerouter debug prints
+  debug?: boolean;
+  // Where to write an aggregated error log; set null to disable writing
+  writeErrorLogPath?: string | null;
+  // Print per-image progress
+  verbose?: boolean;
+};
+
 /**
  * Run a generic route-image folder test against current routes in rerouter.
  * Throws on error when any image has zero match or conflicting matches, or when
@@ -68,10 +72,6 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   // Allow tests to re-run cleanly
   rerouter.reset();
   rerouter.debug = !!debug;
-  // Ensure getImageColor is available in Node/Jimp env
-  installJimpGetImageColor();
-  // Install mock Robotmon globals for test compatibility
-  installRobotmonGlobals();
 
   // Execute route setup (synchronously expected)
   setupRoutes();
