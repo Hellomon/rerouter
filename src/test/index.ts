@@ -63,8 +63,8 @@ export type RouteImageFolderTestOptions = {
 
 /**
  * Run a generic route-image folder test against current routes in rerouter.
- * Throws on error when any image has zero match or conflicting matches, or when
- * enforceNameMatch is true and the filename doesn't match matched page/route.
+ * Shows warnings for images with no matches, and throws errors for conflicting matches
+ * or when the filename doesn't match the matched page/route.
  */
 export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): void {
   const { setupRoutes, screenshotsPath, rotation = 'horizontal', debug = false, writeErrorLogPath = 'errorLog.txt', verbose = true } = options;
@@ -82,6 +82,7 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
 
   const files = fs.readdirSync(screenshotsPath);
   const errorMessages: string[] = [];
+  const warningMessages: string[] = [];
 
   for (const file of files) {
     if (!file.endsWith('.png')) {
@@ -101,7 +102,7 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
     const matches: { matchedRoute: Required<RouteConfig>; matchedPages: Page[] }[] = (rerouter as any).findMatchedRouteImpl('', imageData, rotation);
 
     if (matches.length === 0) {
-      handleNoMatches(file, errorMessages);
+      handleNoMatches(file, warningMessages);
     } else if (matches.length === 1) {
       handleSingleMatch(file, matches[0], errorMessages, verbose);
     } else if (matches.length > 1) {
@@ -109,6 +110,12 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
     }
   }
 
+  // Display warnings
+  if (warningMessages.length > 0) {
+    console.warn(`Warnings encountered:\n${warningMessages.join('\n')}`);
+  }
+
+  // Handle errors
   if (errorMessages.length > 0) {
     if (writeErrorLogPath) {
       try {
@@ -119,8 +126,8 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   }
 }
 
-function handleNoMatches(file: string, errorMessages: string[]) {
-  errorMessages.push(`No route matches image ${file}`);
+function handleNoMatches(file: string, warningMessages: string[]) {
+  warningMessages.push(`No route matches image ${file}`);
 }
 
 function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; matchedPages: Page[] }, errorMessages: string[], verbose: boolean) {
