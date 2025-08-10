@@ -47,6 +47,17 @@ function installJimpGetImageColor(): void {
 }
 
 /**
+ * Install mock Robotmon-specific global functions for test usage.
+ * Only mocks the functions that are actually needed and not already provided.
+ */
+function installRobotmonGlobals(): void {
+  const g: any = (typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : {}) as any;
+  if (g) {
+    g.getStoragePath = (): string => '/tmp/test-storage';
+  }
+}
+
+/**
  * Run a generic route-image folder test against current routes in rerouter.
  * Throws on error when any image has zero match or conflicting matches, or when
  * enforceNameMatch is true and the filename doesn't match matched page/route.
@@ -59,6 +70,8 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   rerouter.debug = !!debug;
   // Ensure getImageColor is available in Node/Jimp env
   installJimpGetImageColor();
+  // Install mock Robotmon globals for test compatibility
+  installRobotmonGlobals();
 
   // Execute route setup (synchronously expected)
   setupRoutes();

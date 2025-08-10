@@ -25,7 +25,7 @@
   },
   "scripts": {
     "clean": "rm -r ./dist || true",
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && npm i && tsc",
     "prepare": "npm run build"
   },
   "author": "robotmon",
