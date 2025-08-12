@@ -175,13 +175,16 @@ function handleMultipleMatches(
     return;
   }
 
-  const conflictingRoutes = [highToLow[0].matchedRoute.path];
-  for (let i = 1; i < highToLow.length; i++) {
+  const conflictingMatches: string[] = [];
+
+  for (let i = 0; i < highToLow.length; i++) {
     if (highToLow[i].matchedRoute.priority === highToLow[0].matchedRoute.priority) {
-      conflictingRoutes.push(highToLow[i].matchedRoute.path);
+      const route = highToLow[i].matchedRoute;
+      const pages = highToLow[i].matchedPages;
+      conflictingMatches.push(`${route.path} [${pages.map(p => p.name).join(', ')}]`);
     } else {
       break;
     }
   }
-  errorMessages.push(`Multiple routes match image ${file}: [${conflictingRoutes.join(', ')}] (all priority ${highToLow[0].matchedRoute.priority})`);
+  errorMessages.push(`Multiple routes match image ${file}: ${conflictingMatches.join(' vs ')} (all priority ${highToLow[0].matchedRoute.priority})`);
 }
