@@ -127,9 +127,13 @@ export interface RouteConfig {
 }
 
 export interface TaskConfig {
+  /** Task name identifier */
   name: string;
+  /** Maximum number of times this task can run before automatically stopping */
   maxTaskRunTimes?: number;
+  /** Maximum duration (in milliseconds) this task is allowed to run */
   maxTaskDuring?: number;
+  /** Minimum interval (in milliseconds) between task rounds/iterations */
   minRoundInterval?: number;
   /**
    * Determines the behavior when a task's execution time exceeds maxTaskDuring.
@@ -144,16 +148,20 @@ export interface TaskConfig {
    */
   findRouteDelay?: number;
   /**
-   * Do something before go into matching route loop, if return 'skipRouteLoop', it will not go into matching route loop
+   * Callback function executed before entering the route matching loop.
+   * If it returns 'skipRouteLoop', the route matching loop will be skipped entirely.
    */
   beforeTask?: null | ((task: Task) => void | 'skipRouteLoop');
+  /** Callback function executed after the task completes */
   afterTask?: null | ((task: Task) => void);
   /**
-   * Alias for beforeTask (for backward compatibility)
+   * Alias for beforeTask (for backward compatibility).
+   * Callback function executed before entering the route matching loop.
    */
   beforeRoute?: null | ((task: Task) => void | 'skipRouteLoop');
   /**
-   * Alias for afterTask (for backward compatibility)
+   * Alias for afterTask (for backward compatibility).
+   * Callback function executed after the task completes.
    */
   afterRoute?: null | ((task: Task) => void);
 }
