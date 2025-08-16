@@ -130,17 +130,26 @@ function handleNoMatches(file: string, warningMessages: string[]) {
   warningMessages.push(`No route matches image ${file}`);
 }
 
-function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; matchedPages: Page[] }, errorMessages: string[], verbose: boolean) {
-  const matchedRoute: RouteConfig = match.matchedRoute;
-  const matchedPages: Page[] = match.matchedPages;
-
+function validateFileNameMatch(file: string, matchedRoute: RouteConfig, matchedPages: Page[]): { isValid: boolean; fileNameWithOnlyFirstName: string } {
   const fileNameWithoutExtension = path.basename(file, '.png');
   const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
   const routePathWithoutHeadSlash = (matchedRoute.path || '').split('/')[1];
   const isExactMatchPageName = matchedPages.some(page => page.name === fileNameWithOnlyFirstName);
   const isExactMatchRoutePath = routePathWithoutHeadSlash === fileNameWithOnlyFirstName;
 
-  if (isExactMatchPageName || isExactMatchRoutePath) {
+  return {
+    isValid: isExactMatchPageName || isExactMatchRoutePath,
+    fileNameWithOnlyFirstName,
+  };
+}
+
+function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; matchedPages: Page[] }, errorMessages: string[], verbose: boolean) {
+  const matchedRoute: RouteConfig = match.matchedRoute;
+  const matchedPages: Page[] = match.matchedPages;
+
+  const validation = validateFileNameMatch(file, matchedRoute, matchedPages);
+
+  if (validation.isValid) {
     if (verbose) {
       console.log(
         `Exact match found for file: ${file} with the pages [${matchedPages
@@ -155,7 +164,7 @@ function handleSingleMatch(file: string, match: { matchedRoute: RouteConfig; mat
 
   const totalPages = matchedRoute.match && 'pages' in matchedRoute.match ? matchedRoute.match.pages.length : 1;
   errorMessages.push(
-    `Mismatch: Image file ${file} (expected: ${fileNameWithOnlyFirstName}) matched route ${matchedRoute.path} but only found pages [${matchedPages
+    `Mismatch: Image file ${file} (expected: ${validation.fileNameWithOnlyFirstName}) matched route ${matchedRoute.path} but only found pages [${matchedPages
       .map(page => page.name)
       .join(', ')}]. Route has ${totalPages} total pages.`
   );
@@ -173,13 +182,9 @@ function handleMultipleMatches(
     const matchedRoute: RouteConfig = highToLow[0].matchedRoute;
     const matchedPages: Page[] = highToLow[0].matchedPages;
 
-    const fileNameWithoutExtension = path.basename(file, '.png');
-    const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
-    const routePathWithoutHeadSlash = (matchedRoute.path || '').split('/')[1];
-    const isExactMatchPageName = matchedPages.some(page => page.name === fileNameWithOnlyFirstName);
-    const isExactMatchRoutePath = routePathWithoutHeadSlash === fileNameWithOnlyFirstName;
+    const validation = validateFileNameMatch(file, matchedRoute, matchedPages);
 
-    if (isExactMatchPageName || isExactMatchRoutePath) {
+    if (validation.isValid) {
       if (verbose) {
         console.log(
           `Priority match found for file: ${file} with the highest route ${matchedRoute.path} and pages [${matchedPages
@@ -194,7 +199,7 @@ function handleMultipleMatches(
 
     const totalPages = matchedRoute.match && 'pages' in matchedRoute.match ? matchedRoute.match.pages.length : 1;
     errorMessages.push(
-      `Mismatch: Image file ${file} (expected: ${fileNameWithOnlyFirstName}) matched highest priority route ${
+      `Mismatch: Image file ${file} (expected: ${validation.fileNameWithOnlyFirstName}) matched highest priority route ${
         matchedRoute.path
       } but only found pages [${matchedPages.map(page => page.name).join(', ')}]. Route has ${totalPages} total pages.`
     );
