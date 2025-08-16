@@ -169,9 +169,35 @@ function handleMultipleMatches(
 ) {
   const highToLow = matches.sort((a, b) => b.matchedRoute.priority - a.matchedRoute.priority);
   if (highToLow[0].matchedRoute.priority > highToLow[1].matchedRoute.priority) {
-    if (verbose) {
-      console.log(`Priority match found for file: ${file} with the highest route ${highToLow[0].matchedRoute}`);
+    // Apply the same naming check as handleSingleMatch
+    const matchedRoute: RouteConfig = highToLow[0].matchedRoute;
+    const matchedPages: Page[] = highToLow[0].matchedPages;
+
+    const fileNameWithoutExtension = path.basename(file, '.png');
+    const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
+    const routePathWithoutHeadSlash = (matchedRoute.path || '').split('/')[1];
+    const isExactMatchPageName = matchedPages.some(page => page.name === fileNameWithOnlyFirstName);
+    const isExactMatchRoutePath = routePathWithoutHeadSlash === fileNameWithOnlyFirstName;
+
+    if (isExactMatchPageName || isExactMatchRoutePath) {
+      if (verbose) {
+        console.log(
+          `Priority match found for file: ${file} with the highest route ${matchedRoute.path} and pages [${matchedPages
+            .map(function (p) {
+              return p.name;
+            })
+            .join(', ')}]`
+        );
+      }
+      return;
     }
+
+    const totalPages = matchedRoute.match && 'pages' in matchedRoute.match ? matchedRoute.match.pages.length : 1;
+    errorMessages.push(
+      `Mismatch: Image file ${file} (expected: ${fileNameWithOnlyFirstName}) matched highest priority route ${
+        matchedRoute.path
+      } but only found pages [${matchedPages.map(page => page.name).join(', ')}]. Route has ${totalPages} total pages.`
+    );
     return;
   }
 
