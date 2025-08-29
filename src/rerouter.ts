@@ -406,6 +406,8 @@ export class Rerouter {
       afterActionDelay: config.afterActionDelay ?? this.defaultConfig.RouteConfigAfterActionDelay,
       priority: config.priority ?? this.defaultConfig.RouteConfigPriority,
       debug: config.debug ?? this.defaultConfig.RouteConfigDebug,
+      beforeRoute: config.beforeRoute ?? null,
+      afterRoute: config.afterRoute ?? null,
     };
   }
 
@@ -579,29 +581,56 @@ export class Rerouter {
       // should still wait for matching condition
       return;
     }
+
+    // Execute beforeRoute callback if defined
+    if (route.beforeRoute !== null) {
+      this.logImpl(route.debug, `Route: ${route.path} executing beforeRoute callback`);
+      try {
+        route.beforeRoute(context, image, matchedPages);
+      } catch (error) {
+        this.warning(`Route: ${route.path} beforeRoute callback error:`, error);
+      }
+    }
+
     const nextXY = matchedPages[0]?.next;
     const backXY = matchedPages[0]?.back;
     // matched and fit condition, do action
     Utils.sleep(route.beforeActionDelay);
-    if (route.action === 'goNext') {
-      if (nextXY !== undefined) {
-        this.screen.tap(nextXY);
+
+    try {
+      if (route.action === 'goNext') {
+        if (nextXY !== undefined) {
+          this.screen.tap(nextXY);
+        } else {
+          this.warning(`${route.path} action == goNext, but no next xy`);
+        }
+      } else if (route.action === 'goBack') {
+        if (backXY !== undefined) {
+          this.screen.tap(backXY);
+        } else {
+          this.warning(`${route.path} action == goBack, but no back xy`);
+        }
+      } else if (route.action === 'keycodeBack') {
+        keycode('BACK', this.screenConfig.actionDuring);
       } else {
-        this.warning(`${route.path} action == goNext, but no next xy`);
+        route.action(context, image, matchedPages, finishRound);
       }
-    } else if (route.action === 'goBack') {
-      if (backXY !== undefined) {
-        this.screen.tap(backXY);
-      } else {
-        this.warning(`${route.path} action == goBack, but no back xy`);
-      }
-    } else if (route.action === 'keycodeBack') {
-      keycode('BACK', this.screenConfig.actionDuring);
-    } else {
-      route.action(context, image, matchedPages, finishRound);
+    } catch (error) {
+      this.warning(`Route: ${route.path} action execution error:`, error);
     }
+
     this.savePageReferenceImage(image, matchedPages);
     Utils.sleep(route.afterActionDelay);
+
+    // Execute afterRoute callback if defined
+    if (route.afterRoute !== null) {
+      this.logImpl(route.debug, `Route: ${route.path} executing afterRoute callback`);
+      try {
+        route.afterRoute(context, image, matchedPages);
+      } catch (error) {
+        this.warning(`Route: ${route.path} afterRoute callback error:`, error);
+      }
+    }
   }
 
   private findMatchedRouteImpl(
