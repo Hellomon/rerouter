@@ -124,6 +124,16 @@ export interface RouteConfig {
   afterActionDelay?: number;
   priority?: number;
   debug?: boolean;
+  /**
+   * Callback function executed before this specific route's action.
+   * Called when a route matches and is about to execute its action.
+   */
+  beforeRoute?: null | ((context: RouteContext, image: Image, matched: Page[]) => void);
+  /**
+   * Callback function executed after this specific route's action.
+   * Called after a route's action has been executed.
+   */
+  afterRoute?: null | ((context: RouteContext, image: Image, matched: Page[]) => void);
 }
 
 export interface TaskConfig {
@@ -157,11 +167,13 @@ export interface TaskConfig {
   /**
    * Alias for beforeTask (for backward compatibility).
    * Callback function executed before entering the route matching loop.
+   * @deprecated Use beforeTask instead. This will be removed in future versions.
    */
   beforeRoute?: null | ((task: Task) => void | 'skipRouteLoop');
   /**
    * Alias for afterTask (for backward compatibility).
    * Callback function executed after the task completes.
+   * @deprecated Use afterTask instead. This will be removed in future versions.
    */
   afterRoute?: null | ((task: Task) => void);
 }
