@@ -25,6 +25,8 @@ export class Rerouter {
   private routeContext: RouteContext | null = null;
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private startAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
+  private globalBeforeRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
+  private globalAfterRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
 
   private localGameStatus: GameStatus | null = null;
   private cloudGameStatus: GameStatus | null = null;
@@ -125,6 +127,22 @@ export class Rerouter {
 
   public addStartAppAction(action: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null): void {
     this.startAppRouteAction = action;
+  }
+
+  /**
+   * Set global beforeRoute callback that executes before every route action
+   * @param action function to execute before any route action
+   */
+  public addGlobalBeforeRoute(action: ((context: RouteContext, image: Image, matched: Page[]) => void) | null): void {
+    this.globalBeforeRouteAction = action;
+  }
+
+  /**
+   * Set global afterRoute callback that executes after every route action
+   * @param action function to execute after any route action
+   */
+  public addGlobalAfterRoute(action: ((context: RouteContext, image: Image, matched: Page[]) => void) | null): void {
+    this.globalAfterRouteAction = action;
   }
 
   /**
@@ -582,6 +600,16 @@ export class Rerouter {
       return;
     }
 
+    // Execute global beforeRoute callback if defined
+    if (this.globalBeforeRouteAction !== null) {
+      this.logImpl(route.debug, `Global beforeRoute executing for route: ${route.path}`);
+      try {
+        this.globalBeforeRouteAction(context, image, matchedPages);
+      } catch (error) {
+        this.warning(`Global beforeRoute callback error for route: ${route.path}`, error);
+      }
+    }
+
     // Execute beforeRoute callback if defined
     if (route.beforeRoute !== null) {
       this.logImpl(route.debug, `Route: ${route.path} executing beforeRoute callback`);
@@ -629,6 +657,16 @@ export class Rerouter {
         route.afterRoute(context, image, matchedPages);
       } catch (error) {
         this.warning(`Route: ${route.path} afterRoute callback error:`, error);
+      }
+    }
+
+    // Execute global afterRoute callback if defined
+    if (this.globalAfterRouteAction !== null) {
+      this.logImpl(route.debug, `Global afterRoute executing for route: ${route.path}`);
+      try {
+        this.globalAfterRouteAction(context, image, matchedPages);
+      } catch (error) {
+        this.warning(`Global afterRoute callback error for route: ${route.path}`, error);
       }
     }
   }
