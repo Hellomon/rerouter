@@ -27,6 +27,8 @@ export class Rerouter {
   private startAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private globalBeforeRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
   private globalAfterRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
+  private globalBeforeTaskAction: ((task: Task) => void | 'skipRouteLoop') | null = null;
+  private globalAfterTaskAction: ((task: Task) => void) | null = null;
 
   private localGameStatus: GameStatus | null = null;
   private cloudGameStatus: GameStatus | null = null;
@@ -143,6 +145,22 @@ export class Rerouter {
    */
   public addGlobalAfterRoute(action: ((context: RouteContext, image: Image, matched: Page[]) => void) | null): void {
     this.globalAfterRouteAction = action;
+  }
+
+  /**
+   * Set global beforeTask callback that executes before every task
+   * @param action function to execute before any task starts. Can return 'skipRouteLoop' to skip route matching for that task
+   */
+  public addGlobalBeforeTask(action: ((task: Task) => void | 'skipRouteLoop') | null): void {
+    this.globalBeforeTaskAction = action;
+  }
+
+  /**
+   * Set global afterTask callback that executes after every task
+   * @param action function to execute after any task completes
+   */
+  public addGlobalAfterTask(action: ((task: Task) => void) | null): void {
+    this.globalAfterTaskAction = action;
   }
 
   /**
@@ -462,9 +480,23 @@ export class Rerouter {
       task.startTime = now;
       task.runTimes = 0;
       let exitTask = false;
+      
+      // Execute global beforeTask callback if defined
+      let globalSkipRoute = false;
+      if (this.globalBeforeTaskAction !== null) {
+        this.log(`Global beforeTask executing for task: ${task.name}`);
+        try {
+          if (this.globalBeforeTaskAction(task) === 'skipRouteLoop') {
+            globalSkipRoute = true;
+          }
+        } catch (error) {
+          this.warning(`Global beforeTask callback error for task: ${task.name}`, error);
+        }
+      }
+
       for (let i = 0; i < task.config.maxTaskRunTimes && this.running && !exitTask; i++) {
         this.log(`Task: ${task.name} run ${task.runTimes}`);
-        let skipRoute = false;
+        let skipRoute = globalSkipRoute;
         if (task.config.beforeRoute !== null) {
           this.log(`Task: ${task.name} run ${task.runTimes} do beforeRoute()`);
           if (task.config.beforeRoute(task) === 'skipRouteLoop') {
@@ -491,6 +523,17 @@ export class Rerouter {
           break;
         }
       }
+      
+      // Execute global afterTask callback if defined
+      if (this.globalAfterTaskAction !== null) {
+        this.log(`Global afterTask executing for task: ${task.name}`);
+        try {
+          this.globalAfterTaskAction(task);
+        } catch (error) {
+          this.warning(`Global afterTask callback error for task: ${task.name}`, error);
+        }
+      }
+      
       Utils.sleep(this.rerouterConfig.taskDelay);
     }
   }
