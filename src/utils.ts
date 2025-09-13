@@ -242,58 +242,69 @@ export class Utils {
   }
 
   private static cleanupByDays(baseFolder: string, maxDays: number): void {
-    const now = Date.now() / 1000;
-    const cutoffTime = now - maxDays * 24 * 60 * 60;
+    try {
+      const now = Date.now() / 1000;
+      const cutoffTime = now - maxDays * 24 * 60 * 60;
 
-    // Find date folders that are older than maxDays
-    const dateFolders = execute(`find ${baseFolder} -maxdepth 1 -type d -name "????-??-??" 2>/dev/null || true`)
-      .split('\n')
-      .filter(line => line.trim() !== '');
+      // Use basic ls to find date folders (more reliable than find on Android)
+      const folders = execute(`ls -d ${baseFolder}/*/ 2>/dev/null || true`).trim();
+      if (!folders) return;
 
-    let deletedFolders = 0;
-    for (const dateFolder of dateFolders) {
-      if (!dateFolder.trim()) continue;
+      let deletedFolders = 0;
+      const folderList = folders.split('\n').filter(f => f.trim());
 
-      const folderName = dateFolder.split('/').pop();
-      if (!folderName || !/^\d{4}-\d{2}-\d{2}$/.test(folderName)) continue;
+      for (const fullPath of folderList) {
+        const folderName = fullPath.replace(/\/$/, '').split('/').pop(); // Remove trailing slash and get folder name
+        if (!folderName || !/^\d{4}-\d{2}-\d{2}$/.test(folderName)) continue;
 
-      const folderTime = new Date(folderName).getTime() / 1000;
-      if (folderTime < cutoffTime) {
-        console.log(`Deleting date folder: ${folderName} (older than ${maxDays} days)`);
-        execute(`rm -rf "${dateFolder}"`);
-        deletedFolders++;
+        const folderTime = new Date(folderName).getTime() / 1000;
+        if (folderTime < cutoffTime) {
+          try {
+            console.log(`Deleting date folder: ${folderName} (older than ${maxDays} days)`);
+            execute(`rm -rf "${fullPath.replace(/\/$/, '')}"`); // Remove trailing slash
+            deletedFolders++;
+          } catch (e) {
+            console.warn(`Failed to delete folder: ${folderName}`);
+          }
+        }
       }
-    }
 
-    if (deletedFolders > 0) {
-      console.log(`Cleaned up ${deletedFolders} date folders older than ${maxDays} days`);
+      if (deletedFolders > 0) {
+        console.log(`Cleaned up ${deletedFolders} date folders older than ${maxDays} days`);
+      }
+    } catch (error: any) {
+      console.warn(`Date folder cleanup failed: ${error.message}`);
     }
   }
 
   private static cleanupByFileCount(baseFolder: string, maxFiles: number): void {
-    // Check file count first (fast)
-    const fileCount = parseInt(execute(`find ${baseFolder} -maxdepth 1 -type f | wc -l`).trim());
-    if (fileCount <= maxFiles) return; // No cleanup needed
+    try {
+      // Use ls -t directly to get files sorted by time (newest first)
+      const sortedFiles = execute(`ls -t ${baseFolder}/* 2>/dev/null || true`).trim();
+      if (!sortedFiles) return;
 
-    // Use shell commands to sort and get only the files we need to delete
-    // This avoids loading all filenames into memory and sorting in JavaScript
-    const filesToDeleteCount = fileCount - maxFiles;
+      const fileList = sortedFiles.split('\n').filter(f => f.trim());
+      if (fileList.length <= maxFiles) return;
 
-    // Get oldest files using shell sort (much faster than JS sort)
-    const oldestFiles = execute(
-      `find ${baseFolder} -maxdepth 1 -type f -printf "%T@ %p\n" 2>/dev/null | ` +
-        `sort -n | ` + // Sort by timestamp (oldest first)
-        `head -${filesToDeleteCount} | ` + // Take only the files we need to delete
-        `cut -d' ' -f2-` // Extract file paths only
-    ).trim();
+      // Keep newest files, delete the rest
+      const filesToDelete = fileList.slice(maxFiles);
 
-    if (oldestFiles) {
-      const filePaths = oldestFiles
-        .split('\n')
-        .map(path => `"${path}"`)
-        .join(' ');
-      execute(`rm ${filePaths}`);
-      console.log(`Deleted ${filesToDeleteCount} oldest files, keeping newest ${maxFiles} files`);
+      // Delete files one by one to avoid command length issues
+      let deletedCount = 0;
+      for (const file of filesToDelete) {
+        try {
+          execute(`rm "${file}"`);
+          deletedCount++;
+        } catch (e) {
+          console.warn(`Failed to delete file: ${file}`);
+        }
+      }
+
+      if (deletedCount > 0) {
+        console.log(`Deleted ${deletedCount} oldest files, keeping newest ${maxFiles} files`);
+      }
+    } catch (error: any) {
+      console.warn(`File cleanup failed: ${error.message}`);
     }
   }
 
