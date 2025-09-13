@@ -240,34 +240,31 @@ export class Utils {
       const now = Date.now() / 1000;
       const cutoffTime = now - maxDays * 24 * 60 * 60;
 
-      // Use ls -d1 to find date folders (more reliable than find on Android), one per line
-      const folders = execute(`ls -d1 ${baseFolder}/*/ 2>/dev/null || true`).trim();
-      if (!folders) return;
+      // Use find command to get items older than maxDays (more reliable on Android)
+      const findCmd = `find "${baseFolder}" -maxdepth 1 -mtime +${maxDays} 2>/dev/null || true`;
+      const oldItems = execute(findCmd).trim();
+      if (!oldItems) return;
 
-      let deletedFolders = 0;
-      const folderList = folders.split('\n').filter(f => f.trim());
+      let deletedCount = 0;
+      const itemList = oldItems.split('\n').filter(f => f.trim() && f !== baseFolder);
 
-      for (const fullPath of folderList) {
-        const folderName = fullPath.replace(/\/$/, '').split('/').pop(); // Remove trailing slash and get folder name
-        if (!folderName || !/^\d{4}-\d{2}-\d{2}$/.test(folderName)) continue;
-
-        const folderTime = new Date(folderName).getTime() / 1000;
-        if (folderTime < cutoffTime) {
-          try {
-            console.log(`Deleting date folder: ${folderName} (older than ${maxDays} days)`);
-            execute(`rm -rf "${fullPath.replace(/\/$/, '')}"`); // Remove trailing slash
-            deletedFolders++;
-          } catch (e) {
-            console.warn(`Failed to delete folder: ${folderName}`);
-          }
+      for (const fullPath of itemList) {
+        try {
+          const itemName = fullPath.split('/').pop() || '';
+          console.log(`Deleting item: ${itemName} (older than ${maxDays} days)`);
+          execute(`rm -rf "${fullPath}"`);
+          deletedCount++;
+        } catch (e) {
+          const itemName = fullPath.split('/').pop() || '';
+          console.warn(`Failed to delete item: ${itemName}`);
         }
       }
 
-      if (deletedFolders > 0) {
-        console.log(`Cleaned up ${deletedFolders} date folders older than ${maxDays} days`);
+      if (deletedCount > 0) {
+        console.log(`Cleaned up ${deletedCount} items older than ${maxDays} days`);
       }
     } catch (error: any) {
-      console.warn(`Date folder cleanup failed: ${error.message}`);
+      console.warn(`Date cleanup failed: ${error.message}`);
     }
   }
 
