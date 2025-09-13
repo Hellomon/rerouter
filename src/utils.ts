@@ -229,137 +229,60 @@ export class Utils {
       }
       const baseFolder = `${saveImageRoot}${folderPath}`;
 
-      if (maxDays > 0) {
-        // Handle date-based folder structure when maxDays is set
-        Utils.cleanupDateFolders(baseFolder, maxFiles, maxDays);
-      } else {
-        // Handle flat folder structure (original logic)
-        Utils.cleanupFlatFolder(baseFolder, maxFiles, maxDays);
-      }
-    } catch (error: any) {
-      console.warn(`Warning in removeOldestFilesIfExceedsLimit: ${error.message}`);
-      // Don't throw, just log the warning
-    }
-  }
-
-  private static cleanupFlatFolder(folderPath: string, maxFiles: number, maxDays: number): void {
-    // Get all files with their timestamps in one command, only in the first level directory
-    // Format: timestamp filename
-    const findOutput = execute(`find ${folderPath} -maxdepth 1 -type f -printf "%T@ %f\n"`)
-      .split('\n')
-      .filter(line => line.trim() !== '');
-
-    const filesWithDates = findOutput.map(line => {
-      const [timestamp, filename] = line.trim().split(' ');
-      return {
-        timestamp: parseFloat(timestamp),
-        filename: filename,
-        fullPath: `${folderPath}/${filename}`,
-      };
-    });
-
-    filesWithDates.sort((a, b) => a.timestamp - b.timestamp);
-    Utils.deleteFilesByRules(filesWithDates, maxFiles, maxDays, folderPath);
-  }
-
-  private static cleanupDateFolders(baseFolder: string, maxFiles: number, maxDays: number): void {
-    const now = Date.now() / 1000;
-    let allFiles: Array<{ timestamp: number; filename: string; fullPath: string }> = [];
-
-    // Get all date folders
-    const dateFolders = execute(`find ${baseFolder} -maxdepth 1 -type d -name "????-??-??" 2>/dev/null || true`)
-      .split('\n')
-      .filter(line => line.trim() !== '');
-
-    // Collect all files from all date folders
-    for (const dateFolder of dateFolders) {
-      if (!dateFolder.trim()) continue;
-
-      const folderDate = dateFolder.split('/').pop(); // Extract date from path
-      if (!folderDate || !/^\d{4}-\d{2}-\d{2}$/.test(folderDate)) continue;
-
-      // Check if entire folder should be deleted based on age
-      if (maxDays > 0) {
-        const folderTime = new Date(folderDate).getTime() / 1000;
-        const cutoffTime = now - maxDays * 24 * 60 * 60;
-
-        if (folderTime < cutoffTime) {
-          console.log(`Deleting entire date folder: ${dateFolder} (older than ${maxDays} days)`);
-          execute(`rm -rf "${dateFolder}"`);
-          continue;
-        }
-      }
-
-      // Get files from this date folder
-      const filesOutput = execute(`find "${dateFolder}" -maxdepth 1 -type f -printf "%T@ %f\n" 2>/dev/null || true`)
+      // Simple unified approach: find all files (recursively if using date folders)
+      const searchDepth = maxDays > 0 ? '' : '-maxdepth 1'; // recursive for date folders, flat for normal
+      const findCommand = `find ${baseFolder} ${searchDepth} -type f -printf "%T@ %p\n" 2>/dev/null || true`;
+      
+      const findOutput = execute(findCommand)
         .split('\n')
         .filter(line => line.trim() !== '');
 
-      const folderFiles = filesOutput.map(line => {
-        const [timestamp, filename] = line.trim().split(' ');
-        return {
-          timestamp: parseFloat(timestamp),
-          filename: filename,
-          fullPath: `${dateFolder}/${filename}`,
-        };
-      });
+      if (findOutput.length === 0) return;
 
-      allFiles = [...allFiles, ...folderFiles];
-    }
+      // Parse and sort all files by timestamp (oldest first)
+      const allFiles = findOutput
+        .map(line => {
+          const parts = line.trim().split(' ');
+          const timestamp = parseFloat(parts[0]);
+          const fullPath = parts.slice(1).join(' '); // Handle paths with spaces
+          return { timestamp, fullPath };
+        })
+        .sort((a, b) => a.timestamp - b.timestamp);
 
-    // Sort all files by timestamp
-    allFiles.sort((a, b) => a.timestamp - b.timestamp);
+      const filesToDelete: typeof allFiles = [];
+      const now = Date.now() / 1000;
 
-    // Apply cleanup rules to all files across all date folders
-    Utils.deleteFilesByRules(allFiles, maxFiles, maxDays, baseFolder);
-  }
-
-  private static deleteFilesByRules(
-    filesWithDates: Array<{ timestamp: number; filename: string; fullPath: string }>,
-    maxFiles: number,
-    maxDays: number,
-    contextPath: string
-  ): void {
-    let filesToDelete: typeof filesWithDates = [];
-    const now = Date.now() / 1000; // Convert to seconds for comparison
-
-    // Apply date-based cleanup if maxDays > 0
-    if (maxDays > 0) {
-      const cutoffTime = now - maxDays * 24 * 60 * 60; // Convert days to seconds
-      const expiredFiles = filesWithDates.filter(file => file.timestamp < cutoffTime);
-      filesToDelete = [...expiredFiles];
-
-      if (expiredFiles.length > 0) {
-        console.log(`Found ${expiredFiles.length} files older than ${maxDays} days to delete`);
+      // Rule 1: Delete files older than maxDays
+      if (maxDays > 0) {
+        const cutoffTime = now - maxDays * 24 * 60 * 60;
+        const expiredFiles = allFiles.filter(file => file.timestamp < cutoffTime);
+        filesToDelete.push(...expiredFiles);
+        
+        if (expiredFiles.length > 0) {
+          console.log(`Found ${expiredFiles.length} files older than ${maxDays} days`);
+        }
       }
-    }
 
-    // Apply file count-based cleanup
-    if (filesWithDates.length > maxFiles) {
-      const excessFiles = filesWithDates.slice(0, filesWithDates.length - maxFiles);
-      // Merge with expired files, remove duplicates
-      const allFilesToDelete = [...filesToDelete, ...excessFiles];
-      const uniqueFilesToDelete = allFilesToDelete.filter((file, index, arr) => arr.findIndex(f => f.fullPath === file.fullPath) === index);
-      filesToDelete = uniqueFilesToDelete;
-
-      console.log(`Found ${excessFiles.length} excess files to delete (keeping ${maxFiles} files max)`);
-    }
-
-    // Delete files in batches if any files need to be deleted
-    if (filesToDelete.length > 0) {
-      const BATCH_SIZE = 100; // Process 100 files at a time
-      let deletedCount = 0;
-
-      // Process files in batches
-      for (let i = 0; i < filesToDelete.length; i += BATCH_SIZE) {
-        const batch = filesToDelete.slice(i, i + BATCH_SIZE);
-        const fullPaths = batch.map(f => `"${f.fullPath}"`).join(' ');
-
-        // Batch delete files using a single rm command
-        execute(`rm ${fullPaths}`);
-        deletedCount += batch.length;
-        console.log(`Removed batch of ${batch.length} files (total: ${deletedCount}/${filesToDelete.length}) from ${contextPath}`);
+      // Rule 2: Keep only the newest maxFiles
+      if (allFiles.length > maxFiles) {
+        const excessFiles = allFiles.slice(0, allFiles.length - maxFiles);
+        filesToDelete.push(...excessFiles);
+        console.log(`Found ${excessFiles.length} excess files (keeping newest ${maxFiles})`);
       }
+
+      // Remove duplicates and delete
+      const uniqueFiles = filesToDelete.filter((file, index, arr) => 
+        arr.findIndex(f => f.fullPath === file.fullPath) === index
+      );
+
+      if (uniqueFiles.length > 0) {
+        const pathsToDelete = uniqueFiles.map(f => `"${f.fullPath}"`).join(' ');
+        execute(`rm ${pathsToDelete}`);
+        console.log(`Deleted ${uniqueFiles.length} files from ${baseFolder}`);
+      }
+
+    } catch (error: any) {
+      console.warn(`Warning in removeOldestFilesIfExceedsLimit: ${error.message}`);
     }
   }
 
