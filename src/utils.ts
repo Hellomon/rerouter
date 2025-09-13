@@ -233,7 +233,7 @@ export class Utils {
         // Priority 1: Use maxDays - delete entire date folders that are too old
         Utils.cleanupByDays(baseFolder, maxDays);
       } else {
-        // Priority 2: Use maxFiles - keep only newest files in flat structure  
+        // Priority 2: Use maxFiles - keep only newest files in flat structure
         Utils.cleanupByFileCount(baseFolder, maxFiles);
       }
     } catch (error: any) {
@@ -253,7 +253,7 @@ export class Utils {
     let deletedFolders = 0;
     for (const dateFolder of dateFolders) {
       if (!dateFolder.trim()) continue;
-      
+
       const folderName = dateFolder.split('/').pop();
       if (!folderName || !/^\d{4}-\d{2}-\d{2}$/.test(folderName)) continue;
 
@@ -271,30 +271,29 @@ export class Utils {
   }
 
   private static cleanupByFileCount(baseFolder: string, maxFiles: number): void {
-    // Only list files in flat structure (no date folders)
-    const findOutput = execute(`find ${baseFolder} -maxdepth 1 -type f -printf "%T@ %p\n" 2>/dev/null || true`)
-      .split('\n')
-      .filter(line => line.trim() !== '');
+    // Check file count first (fast)
+    const fileCount = parseInt(execute(`find ${baseFolder} -maxdepth 1 -type f | wc -l`).trim());
+    if (fileCount <= maxFiles) return; // No cleanup needed
 
-    if (findOutput.length <= maxFiles) return; // No cleanup needed
+    // Use shell commands to sort and get only the files we need to delete
+    // This avoids loading all filenames into memory and sorting in JavaScript
+    const filesToDeleteCount = fileCount - maxFiles;
 
-    // Parse and sort by timestamp (oldest first)
-    const allFiles = findOutput
-      .map(line => {
-        const parts = line.trim().split(' ');
-        const timestamp = parseFloat(parts[0]);
-        const fullPath = parts.slice(1).join(' ');
-        return { timestamp, fullPath };
-      })
-      .sort((a, b) => a.timestamp - b.timestamp);
+    // Get oldest files using shell sort (much faster than JS sort)
+    const oldestFiles = execute(
+      `find ${baseFolder} -maxdepth 1 -type f -printf "%T@ %p\n" 2>/dev/null | ` +
+        `sort -n | ` + // Sort by timestamp (oldest first)
+        `head -${filesToDeleteCount} | ` + // Take only the files we need to delete
+        `cut -d' ' -f2-` // Extract file paths only
+    ).trim();
 
-    // Delete oldest files to keep only maxFiles
-    const filesToDelete = allFiles.slice(0, allFiles.length - maxFiles);
-    
-    if (filesToDelete.length > 0) {
-      const pathsToDelete = filesToDelete.map(f => `"${f.fullPath}"`).join(' ');
-      execute(`rm ${pathsToDelete}`);
-      console.log(`Deleted ${filesToDelete.length} files, keeping newest ${maxFiles} files`);
+    if (oldestFiles) {
+      const filePaths = oldestFiles
+        .split('\n')
+        .map(path => `"${path}"`)
+        .join(' ');
+      execute(`rm ${filePaths}`);
+      console.log(`Deleted ${filesToDeleteCount} oldest files, keeping newest ${maxFiles} files`);
     }
   }
 
