@@ -237,28 +237,20 @@ export class Utils {
 
   private static cleanupByDays(baseFolder: string, maxDays: number): void {
     try {
-      const now = Date.now() / 1000;
-      const cutoffTime = now - maxDays * 24 * 60 * 60;
-
       // Use find command to get items older than maxDays (more reliable on Android)
       const findCmd = `find "${baseFolder}" -maxdepth 1 -mtime +${maxDays} 2>/dev/null || true`;
       const oldItems = execute(findCmd).trim();
       if (!oldItems) return;
 
-      let deletedCount = 0;
       const itemList = oldItems.split('\n').filter(f => f.trim() && f !== baseFolder);
 
+      // Log what we're deleting
       for (const fullPath of itemList) {
-        try {
-          const itemName = fullPath.split('/').pop() || '';
-          console.log(`Deleting item: ${itemName} (older than ${maxDays} days)`);
-          execute(`rm -rf "${fullPath}"`);
-          deletedCount++;
-        } catch (e) {
-          const itemName = fullPath.split('/').pop() || '';
-          console.warn(`Failed to delete item: ${itemName}`);
-        }
+        const itemName = fullPath.split('/').pop() || '';
+        console.log(`Deleting item: ${itemName} (older than ${maxDays} days)`);
       }
+
+      const deletedCount = Utils.batchDelete(itemList);
 
       if (deletedCount > 0) {
         console.log(`Cleaned up ${deletedCount} items older than ${maxDays} days`);
@@ -283,17 +275,8 @@ export class Utils {
       // Keep newest files, delete the rest
       const filesToDelete = fileList.slice(maxFiles);
 
-      // Delete files/folders one by one to avoid command length issues
-      let deletedCount = 0;
-      for (const file of filesToDelete) {
-        try {
-          // Use rm -rf to handle both files and directories
-          execute(`rm -rf "${file}"`);
-          deletedCount++;
-        } catch (e) {
-          console.warn(`Failed to delete: ${file}`);
-        }
-      }
+      // Batch delete files/folders for better performance
+      const deletedCount = Utils.batchDelete(filesToDelete);
 
       if (deletedCount > 0) {
         console.log(`Deleted ${deletedCount} oldest items, keeping newest ${maxFiles} items`);
@@ -301,6 +284,29 @@ export class Utils {
     } catch (error: any) {
       console.warn(`File cleanup failed: ${error.message}`);
     }
+  }
+
+  private static batchDelete(itemList: string[]): number {
+    if (itemList.length === 0) return 0;
+
+    let deletedCount = 0;
+    const batchSize = 100; // Limit to 100 items per batch to avoid command length issues
+
+    // Process items in batches of 100
+    for (let i = 0; i < itemList.length; i += batchSize) {
+      const batch = itemList.slice(i, i + batchSize);
+      const fileListCmd = batch.map(f => `"${f}"`).join(' ');
+
+      try {
+        execute(`rm -rf ${fileListCmd}`);
+        deletedCount += batch.length;
+        console.log(`Batch deleted ${batch.length} items (${deletedCount}/${itemList.length})`);
+      } catch (e) {
+        console.warn(`Failed to delete batch of ${batch.length} items`);
+      }
+    }
+
+    return deletedCount;
   }
 
   public static joinPaths(path1: string, path2: string) {
