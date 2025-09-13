@@ -184,37 +184,31 @@ export class Utils {
     suffix: string = '',
     timestamp: boolean = true,
     img: Image = undefined,
-    saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot,
-    maxDays: number = -1
+    saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot
   ) {
     if (folderPath.charAt(0) === '/') {
       folderPath = folderPath.substring(1);
     }
 
+    const fullFolderPath = `${saveImageRoot}${folderPath}`;
+    
+    // Create folder if it doesn't exist
+    execute(`mkdir -p "${fullFolderPath}"`);
+
     // Use the same timezone handling as overrideConsole
     const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);
     const [datePart, timePart] = timeStr.split(' ');
-
-    // If maxDays > 0, use date folders automatically
-    if (maxDays > 0) {
-      folderPath = `${saveImageRoot}${folderPath}/${datePart}`;
-      // Create date folder if it doesn't exist
-      execute(`mkdir -p "${folderPath}"`);
-    } else {
-      folderPath = `${saveImageRoot}${folderPath}`;
-    }
-
     const filename = timestamp ? `${datePart}T${timePart.replace(/:/g, '.')}_${suffix}.png` : `${suffix}.png`;
 
     if (img !== undefined) {
-      saveImage(img, `${folderPath}/${filename}`);
+      saveImage(img, `${fullFolderPath}/${filename}`);
     } else {
       img = getScreenshot();
-      saveImage(img, `${folderPath}/${filename}`);
+      saveImage(img, `${fullFolderPath}/${filename}`);
       releaseImage(img);
     }
 
-    console.log(`Write to file: ${folderPath}/${filename}`);
+    console.log(`Write to file: ${fullFolderPath}/${filename}`);
   }
 
   public static removeOldestFilesIfExceedsLimit(
