@@ -75,19 +75,19 @@ export class Utils {
     execute(`ANDROID_DATA=/data monkey --pct-syskeys 0 -p ${packageName} -c android.intent.category.LAUNCHER 1`);
     execute(
       'ANDROID_BOOTLOGO=1 ' +
-      'ANDROID_ROOT=/system ' +
-      'ANDROID_ASSETS=/system/app ' +
-      'ANDROID_DATA=/data ' +
-      'ANDROID_STORAGE=/storage ' +
-      'ANDROID_ART_ROOT=/apex/com.android.art ' +
-      'ANDROID_I18N_ROOT=/apex/com.android.i18n ' +
-      'ANDROID_TZDATA_ROOT=/apex/com.android.tzdata ' +
-      'EXTERNAL_STORAGE=/sdcard ' +
-      'ASEC_MOUNTPOINT=/mnt/asec ' +
-      'BOOTCLASSPATH=/apex/com.android.art/javalib/core-oj.jar:/apex/com.android.art/javalib/core-libart.jar:/apex/com.android.art/javalib/core-icu4j.jar:/apex/com.android.art/javalib/okhttp.jar:/apex/com.android.art/javalib/bouncycastle.jar:/apex/com.android.art/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/framework-atb-backward-compatibility.jar:/apex/com.android.conscrypt/javalib/conscrypt.jar:/apex/com.android.media/javalib/updatable-media.jar:/apex/com.android.mediaprovider/javalib/framework-mediaprovider.jar:/apex/com.android.os.statsd/javalib/framework-statsd.jar:/apex/com.android.permission/javalib/framework-permission.jar:/apex/com.android.sdkext/javalib/framework-sdkextensions.jar:/apex/com.android.wifi/javalib/framework-wifi.jar:/apex/com.android.tethering/javalib/framework-tethering.jar ' +
-      'DEX2OATBOOTCLASSPATH=/apex/com.android.art/javalib/core-oj.jar:/apex/com.android.art/javalib/core-libart.jar:/apex/com.android.art/javalib/core-icu4j.jar:/apex/com.android.art/javalib/okhttp.jar:/apex/com.android.art/javalib/bouncycastle.jar:/apex/com.android.art/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/framework-atb-backward-compatibility.jar ' +
-      'SYSTEMSERVERCLASSPATH=/system/framework/com.android.location.provider.jar:/system/framework/services.jar:/system/framework/ethernet-service.jar:/apex/com.android.permission/javalib/service-permission.jar:/apex/com.android.ipsec/javalib/android.net.ipsec.ike.jar ' +
-      `monkey --pct-syskeys 0 -p ${packageName} -c android.intent.category.LAUNCHER 1`
+        'ANDROID_ROOT=/system ' +
+        'ANDROID_ASSETS=/system/app ' +
+        'ANDROID_DATA=/data ' +
+        'ANDROID_STORAGE=/storage ' +
+        'ANDROID_ART_ROOT=/apex/com.android.art ' +
+        'ANDROID_I18N_ROOT=/apex/com.android.i18n ' +
+        'ANDROID_TZDATA_ROOT=/apex/com.android.tzdata ' +
+        'EXTERNAL_STORAGE=/sdcard ' +
+        'ASEC_MOUNTPOINT=/mnt/asec ' +
+        'BOOTCLASSPATH=/apex/com.android.art/javalib/core-oj.jar:/apex/com.android.art/javalib/core-libart.jar:/apex/com.android.art/javalib/core-icu4j.jar:/apex/com.android.art/javalib/okhttp.jar:/apex/com.android.art/javalib/bouncycastle.jar:/apex/com.android.art/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/framework-atb-backward-compatibility.jar:/apex/com.android.conscrypt/javalib/conscrypt.jar:/apex/com.android.media/javalib/updatable-media.jar:/apex/com.android.mediaprovider/javalib/framework-mediaprovider.jar:/apex/com.android.os.statsd/javalib/framework-statsd.jar:/apex/com.android.permission/javalib/framework-permission.jar:/apex/com.android.sdkext/javalib/framework-sdkextensions.jar:/apex/com.android.wifi/javalib/framework-wifi.jar:/apex/com.android.tethering/javalib/framework-tethering.jar ' +
+        'DEX2OATBOOTCLASSPATH=/apex/com.android.art/javalib/core-oj.jar:/apex/com.android.art/javalib/core-libart.jar:/apex/com.android.art/javalib/core-icu4j.jar:/apex/com.android.art/javalib/okhttp.jar:/apex/com.android.art/javalib/bouncycastle.jar:/apex/com.android.art/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/framework-atb-backward-compatibility.jar ' +
+        'SYSTEMSERVERCLASSPATH=/system/framework/com.android.location.provider.jar:/system/framework/services.jar:/system/framework/ethernet-service.jar:/apex/com.android.permission/javalib/service-permission.jar:/apex/com.android.ipsec/javalib/android.net.ipsec.ike.jar ' +
+        `monkey --pct-syskeys 0 -p ${packageName} -c android.intent.category.LAUNCHER 1`
     );
   }
 
@@ -157,8 +157,6 @@ export class Utils {
     });
   }
 
-
-
   public static waitForAction(action: () => boolean, timeout: number, matchTimes: number = 1, interval = 600): boolean {
     const now = Date.now();
     let matchs = 0;
@@ -181,18 +179,32 @@ export class Utils {
     return num < 10 ? `0${num}` : `${num}`;
   }
 
-  public static saveScreenshotToDisk(folderPath: string, suffix: string = '', timestamp: boolean = true, img: Image = undefined, saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot) {
+  public static saveScreenshotToDisk(
+    folderPath: string,
+    suffix: string = '',
+    timestamp: boolean = true,
+    img: Image = undefined,
+    saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot,
+    maxDays: number = -1
+  ) {
     if (folderPath.charAt(0) === '/') {
       folderPath = folderPath.substring(1);
     }
-    folderPath = `${saveImageRoot}${folderPath}`;
 
     // Use the same timezone handling as overrideConsole
     const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);
     const [datePart, timePart] = timeStr.split(' ');
-    const filename = timestamp
-      ? `${datePart}T${timePart.replace(/:/g, '.')}_${suffix}.png`
-      : `${suffix}.png`;
+
+    // If maxDays > 0, use date folders automatically
+    if (maxDays > 0) {
+      folderPath = `${saveImageRoot}${folderPath}/${datePart}`;
+      // Create date folder if it doesn't exist
+      execute(`mkdir -p "${folderPath}"`);
+    } else {
+      folderPath = `${saveImageRoot}${folderPath}`;
+    }
+
+    const filename = timestamp ? `${datePart}T${timePart.replace(/:/g, '.')}_${suffix}.png` : `${suffix}.png`;
 
     if (img !== undefined) {
       saveImage(img, `${folderPath}/${filename}`);
@@ -205,47 +217,149 @@ export class Utils {
     console.log(`Write to file: ${folderPath}/${filename}`);
   }
 
-  public static removeOldestFilesIfExceedsLimit(folderPath: string, maxFiles: number = 100, saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot): void {
+  public static removeOldestFilesIfExceedsLimit(
+    folderPath: string,
+    maxFiles: number = 100,
+    maxDays: number = -1,
+    saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot
+  ): void {
     try {
       if (folderPath.charAt(0) === '/') {
         folderPath = folderPath.substring(1);
       }
-      folderPath = `${saveImageRoot}${folderPath}`;
+      const baseFolder = `${saveImageRoot}${folderPath}`;
 
-      // Get all files with their timestamps in one command, only in the first level directory
-      // Format: timestamp filename
-      const findOutput = execute(`find ${folderPath} -maxdepth 1 -type f -printf "%T@ %f\n"`).split('\n').filter(line => line.trim() !== '');
-      
-      const filesWithDates = findOutput.map(line => {
-        const [timestamp, filename] = line.trim().split(' ');
-        return {
-          timestamp: parseFloat(timestamp),
-          filename: filename,
-        };
-      });
-
-      filesWithDates.sort((a, b) => a.timestamp - b.timestamp);
-
-      // If there are more than ${maxFiles} files, remove the oldest
-      if (filesWithDates.length > maxFiles) {
-        const filesToDelete = filesWithDates.slice(0, filesWithDates.length - maxFiles);
-        const BATCH_SIZE = 100; // Process 100 files at a time
-        let deletedCount = 0;
-
-        // Process files in batches
-        for (let i = 0; i < filesToDelete.length; i += BATCH_SIZE) {
-          const batch = filesToDelete.slice(i, i + BATCH_SIZE);
-          const fullPaths = batch.map(f => `${folderPath}/${f.filename}`).join(' ');
-          
-          // Batch delete files using a single rm command
-          execute(`rm ${fullPaths}`);
-          deletedCount += batch.length;
-          console.log(`Removed batch of ${batch.length} files (total: ${deletedCount}/${filesToDelete.length}) from ${folderPath}`);
-        }
+      if (maxDays > 0) {
+        // Handle date-based folder structure when maxDays is set
+        Utils.cleanupDateFolders(baseFolder, maxFiles, maxDays);
+      } else {
+        // Handle flat folder structure (original logic)
+        Utils.cleanupFlatFolder(baseFolder, maxFiles, maxDays);
       }
     } catch (error: any) {
       console.warn(`Warning in removeOldestFilesIfExceedsLimit: ${error.message}`);
       // Don't throw, just log the warning
+    }
+  }
+
+  private static cleanupFlatFolder(folderPath: string, maxFiles: number, maxDays: number): void {
+    // Get all files with their timestamps in one command, only in the first level directory
+    // Format: timestamp filename
+    const findOutput = execute(`find ${folderPath} -maxdepth 1 -type f -printf "%T@ %f\n"`)
+      .split('\n')
+      .filter(line => line.trim() !== '');
+
+    const filesWithDates = findOutput.map(line => {
+      const [timestamp, filename] = line.trim().split(' ');
+      return {
+        timestamp: parseFloat(timestamp),
+        filename: filename,
+        fullPath: `${folderPath}/${filename}`,
+      };
+    });
+
+    filesWithDates.sort((a, b) => a.timestamp - b.timestamp);
+    Utils.deleteFilesByRules(filesWithDates, maxFiles, maxDays, folderPath);
+  }
+
+  private static cleanupDateFolders(baseFolder: string, maxFiles: number, maxDays: number): void {
+    const now = Date.now() / 1000;
+    let allFiles: Array<{ timestamp: number; filename: string; fullPath: string }> = [];
+
+    // Get all date folders
+    const dateFolders = execute(`find ${baseFolder} -maxdepth 1 -type d -name "????-??-??" 2>/dev/null || true`)
+      .split('\n')
+      .filter(line => line.trim() !== '');
+
+    // Collect all files from all date folders
+    for (const dateFolder of dateFolders) {
+      if (!dateFolder.trim()) continue;
+
+      const folderDate = dateFolder.split('/').pop(); // Extract date from path
+      if (!folderDate || !/^\d{4}-\d{2}-\d{2}$/.test(folderDate)) continue;
+
+      // Check if entire folder should be deleted based on age
+      if (maxDays > 0) {
+        const folderTime = new Date(folderDate).getTime() / 1000;
+        const cutoffTime = now - maxDays * 24 * 60 * 60;
+
+        if (folderTime < cutoffTime) {
+          console.log(`Deleting entire date folder: ${dateFolder} (older than ${maxDays} days)`);
+          execute(`rm -rf "${dateFolder}"`);
+          continue;
+        }
+      }
+
+      // Get files from this date folder
+      const filesOutput = execute(`find "${dateFolder}" -maxdepth 1 -type f -printf "%T@ %f\n" 2>/dev/null || true`)
+        .split('\n')
+        .filter(line => line.trim() !== '');
+
+      const folderFiles = filesOutput.map(line => {
+        const [timestamp, filename] = line.trim().split(' ');
+        return {
+          timestamp: parseFloat(timestamp),
+          filename: filename,
+          fullPath: `${dateFolder}/${filename}`,
+        };
+      });
+
+      allFiles = [...allFiles, ...folderFiles];
+    }
+
+    // Sort all files by timestamp
+    allFiles.sort((a, b) => a.timestamp - b.timestamp);
+
+    // Apply cleanup rules to all files across all date folders
+    Utils.deleteFilesByRules(allFiles, maxFiles, maxDays, baseFolder);
+  }
+
+  private static deleteFilesByRules(
+    filesWithDates: Array<{ timestamp: number; filename: string; fullPath: string }>,
+    maxFiles: number,
+    maxDays: number,
+    contextPath: string
+  ): void {
+    let filesToDelete: typeof filesWithDates = [];
+    const now = Date.now() / 1000; // Convert to seconds for comparison
+
+    // Apply date-based cleanup if maxDays > 0
+    if (maxDays > 0) {
+      const cutoffTime = now - maxDays * 24 * 60 * 60; // Convert days to seconds
+      const expiredFiles = filesWithDates.filter(file => file.timestamp < cutoffTime);
+      filesToDelete = [...expiredFiles];
+
+      if (expiredFiles.length > 0) {
+        console.log(`Found ${expiredFiles.length} files older than ${maxDays} days to delete`);
+      }
+    }
+
+    // Apply file count-based cleanup
+    if (filesWithDates.length > maxFiles) {
+      const excessFiles = filesWithDates.slice(0, filesWithDates.length - maxFiles);
+      // Merge with expired files, remove duplicates
+      const allFilesToDelete = [...filesToDelete, ...excessFiles];
+      const uniqueFilesToDelete = allFilesToDelete.filter((file, index, arr) => arr.findIndex(f => f.fullPath === file.fullPath) === index);
+      filesToDelete = uniqueFilesToDelete;
+
+      console.log(`Found ${excessFiles.length} excess files to delete (keeping ${maxFiles} files max)`);
+    }
+
+    // Delete files in batches if any files need to be deleted
+    if (filesToDelete.length > 0) {
+      const BATCH_SIZE = 100; // Process 100 files at a time
+      let deletedCount = 0;
+
+      // Process files in batches
+      for (let i = 0; i < filesToDelete.length; i += BATCH_SIZE) {
+        const batch = filesToDelete.slice(i, i + BATCH_SIZE);
+        const fullPaths = batch.map(f => `"${f.fullPath}"`).join(' ');
+
+        // Batch delete files using a single rm command
+        execute(`rm ${fullPaths}`);
+        deletedCount += batch.length;
+        console.log(`Removed batch of ${batch.length} files (total: ${deletedCount}/${filesToDelete.length}) from ${contextPath}`);
+      }
     }
   }
 

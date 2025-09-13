@@ -201,8 +201,20 @@ export class Screen {
   checkAndSaveScreenshots() {
     if (this.config.logScreenshotFolder !== '' && Date.now() - this.config.logScreenshotLastTime > this.config.logScreenshotMinIntervalInSec * 1000) {
       this.config.logScreenshotLastTime = Date.now();
-      Utils.saveScreenshotToDisk(this.config.logScreenshotFolder, 'log', true, undefined, DEFAULT_REROUTER_CONFIG.saveImageRoot);
-      Utils.removeOldestFilesIfExceedsLimit(this.config.logScreenshotFolder, this.config.logScreenshotMaxFiles, DEFAULT_REROUTER_CONFIG.saveImageRoot);
+      Utils.saveScreenshotToDisk(
+        this.config.logScreenshotFolder,
+        'log',
+        true,
+        undefined,
+        DEFAULT_REROUTER_CONFIG.saveImageRoot,
+        this.config.logScreenshotMaxDays
+      );
+      Utils.removeOldestFilesIfExceedsLimit(
+        this.config.logScreenshotFolder,
+        this.config.logScreenshotMaxFiles,
+        this.config.logScreenshotMaxDays,
+        DEFAULT_REROUTER_CONFIG.saveImageRoot
+      );
     }
   }
 

@@ -200,6 +200,7 @@ export interface ScreenConfig {
   logScreenshotLastTime: number;
   logScreenshotMinIntervalInSec: number;
   logScreenshotMaxFiles: number;
+  logScreenshotMaxDays: number; // maximum days to keep screenshot files, -1 to disable date-based cleanup and folder organization
   readonly logScreenshotFolder: string; // readonly property
 }
 
