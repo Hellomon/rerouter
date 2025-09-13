@@ -157,8 +157,6 @@ export class Utils {
     });
   }
 
-
-
   public static waitForAction(action: () => boolean, timeout: number, matchTimes: number = 1, interval = 600): boolean {
     const now = Date.now();
     let matchs = 0;
@@ -181,72 +179,134 @@ export class Utils {
     return num < 10 ? `0${num}` : `${num}`;
   }
 
-  public static saveScreenshotToDisk(folderPath: string, suffix: string = '', timestamp: boolean = true, img: Image = undefined, saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot) {
+  public static saveScreenshotToDisk(
+    folderPath: string,
+    suffix: string = '',
+    timestamp: boolean = true,
+    img: Image = undefined,
+    saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot
+  ) {
     if (folderPath.charAt(0) === '/') {
       folderPath = folderPath.substring(1);
     }
-    folderPath = `${saveImageRoot}${folderPath}`;
+
+    const fullFolderPath = `${saveImageRoot}${folderPath}`;
+
+    // Create folder if it doesn't exist
+    execute(`mkdir -p "${fullFolderPath}"`);
 
     // Use the same timezone handling as overrideConsole
     const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);
     const [datePart, timePart] = timeStr.split(' ');
-    const filename = timestamp
-      ? `${datePart}T${timePart.replace(/:/g, '.')}_${suffix}.png`
-      : `${suffix}.png`;
+    const filename = timestamp ? `${datePart}T${timePart.replace(/:/g, '.')}_${suffix}.png` : `${suffix}.png`;
 
     if (img !== undefined) {
-      saveImage(img, `${folderPath}/${filename}`);
+      saveImage(img, `${fullFolderPath}/${filename}`);
     } else {
       img = getScreenshot();
-      saveImage(img, `${folderPath}/${filename}`);
+      saveImage(img, `${fullFolderPath}/${filename}`);
       releaseImage(img);
     }
 
-    console.log(`Write to file: ${folderPath}/${filename}`);
+    console.log(`Write to file: ${fullFolderPath}/${filename}`);
   }
 
-  public static removeOldestFilesIfExceedsLimit(folderPath: string, maxFiles: number = 100, saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot): void {
+  public static removeOldestFilesIfExceedsLimit(
+    folderPath: string,
+    maxFiles: number = 100,
+    maxDays: number = -1,
+    saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot
+  ): void {
     try {
       if (folderPath.charAt(0) === '/') {
         folderPath = folderPath.substring(1);
       }
-      folderPath = `${saveImageRoot}${folderPath}`;
+      const baseFolder = `${saveImageRoot}${folderPath}`;
 
-      // Get all files with their timestamps in one command, only in the first level directory
-      // Format: timestamp filename
-      const findOutput = execute(`find ${folderPath} -maxdepth 1 -type f -printf "%T@ %f\n"`).split('\n').filter(line => line.trim() !== '');
-      
-      const filesWithDates = findOutput.map(line => {
-        const [timestamp, filename] = line.trim().split(' ');
-        return {
-          timestamp: parseFloat(timestamp),
-          filename: filename,
-        };
-      });
-
-      filesWithDates.sort((a, b) => a.timestamp - b.timestamp);
-
-      // If there are more than ${maxFiles} files, remove the oldest
-      if (filesWithDates.length > maxFiles) {
-        const filesToDelete = filesWithDates.slice(0, filesWithDates.length - maxFiles);
-        const BATCH_SIZE = 100; // Process 100 files at a time
-        let deletedCount = 0;
-
-        // Process files in batches
-        for (let i = 0; i < filesToDelete.length; i += BATCH_SIZE) {
-          const batch = filesToDelete.slice(i, i + BATCH_SIZE);
-          const fullPaths = batch.map(f => `${folderPath}/${f.filename}`).join(' ');
-          
-          // Batch delete files using a single rm command
-          execute(`rm ${fullPaths}`);
-          deletedCount += batch.length;
-          console.log(`Removed batch of ${batch.length} files (total: ${deletedCount}/${filesToDelete.length}) from ${folderPath}`);
-        }
+      if (maxDays > 0) {
+        // Priority 1: Use maxDays - delete entire date folders that are too old
+        Utils.cleanupByDays(baseFolder, maxDays);
+      } else {
+        // Priority 2: Use maxFiles - keep only newest files in flat structure
+        Utils.cleanupByFileCount(baseFolder, maxFiles);
       }
     } catch (error: any) {
       console.warn(`Warning in removeOldestFilesIfExceedsLimit: ${error.message}`);
-      // Don't throw, just log the warning
     }
+  }
+
+  private static cleanupByDays(baseFolder: string, maxDays: number): void {
+    try {
+      // Use find command to get items older than maxDays (more reliable on Android)
+      const findCmd = `find "${baseFolder}" -maxdepth 1 -mtime +${maxDays} 2>/dev/null || true`;
+      const oldItems = execute(findCmd).trim();
+      if (!oldItems) return;
+
+      const itemList = oldItems.split('\n').filter(f => f.trim() && f !== baseFolder);
+
+      // Log what we're deleting
+      for (const fullPath of itemList) {
+        const itemName = fullPath.split('/').pop() || '';
+        console.log(`Deleting item: ${itemName} (older than ${maxDays} days)`);
+      }
+
+      const deletedCount = Utils.batchDelete(itemList);
+
+      if (deletedCount > 0) {
+        console.log(`Cleaned up ${deletedCount} items older than ${maxDays} days`);
+      }
+    } catch (error: any) {
+      console.warn(`Date cleanup failed: ${error.message}`);
+    }
+  }
+
+  private static cleanupByFileCount(baseFolder: string, maxFiles: number): void {
+    try {
+      // Use ls -t1 to get files sorted by time (newest first), one per line
+      const sortedFiles = execute(`ls -t1 ${baseFolder} 2>/dev/null || true`).trim();
+      if (!sortedFiles) return;
+
+      const fileList = sortedFiles
+        .split('\n')
+        .filter(f => f.trim())
+        .map(f => `${baseFolder}/${f}`);
+      if (fileList.length <= maxFiles) return;
+
+      // Keep newest files, delete the rest
+      const filesToDelete = fileList.slice(maxFiles);
+
+      // Batch delete files/folders for better performance
+      const deletedCount = Utils.batchDelete(filesToDelete);
+
+      if (deletedCount > 0) {
+        console.log(`Deleted ${deletedCount} oldest items, keeping newest ${maxFiles} items`);
+      }
+    } catch (error: any) {
+      console.warn(`File cleanup failed: ${error.message}`);
+    }
+  }
+
+  private static batchDelete(itemList: string[]): number {
+    if (itemList.length === 0) return 0;
+
+    let deletedCount = 0;
+    const batchSize = 100; // Limit to 100 items per batch to avoid command length issues
+
+    // Process items in batches of 100
+    for (let i = 0; i < itemList.length; i += batchSize) {
+      const batch = itemList.slice(i, i + batchSize);
+      const fileListCmd = batch.map(f => `"${f}"`).join(' ');
+
+      try {
+        execute(`rm -rf ${fileListCmd}`);
+        deletedCount += batch.length;
+        console.log(`Batch deleted ${batch.length} items (${deletedCount}/${itemList.length})`);
+      } catch (e) {
+        console.warn(`Failed to delete batch of ${batch.length} items`);
+      }
+    }
+
+    return deletedCount;
   }
 
   public static joinPaths(path1: string, path2: string) {

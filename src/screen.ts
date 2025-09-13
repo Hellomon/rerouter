@@ -1,6 +1,7 @@
 import type { ScreenConfig, XY, XYRGB } from './struct';
 import { Utils } from './utils';
 import { DEFAULT_REROUTER_CONFIG } from './defaults';
+import { overrideConsole } from './overrides';
 
 export class Screen {
   public static debug: boolean = false;
@@ -201,8 +202,28 @@ export class Screen {
   checkAndSaveScreenshots() {
     if (this.config.logScreenshotFolder !== '' && Date.now() - this.config.logScreenshotLastTime > this.config.logScreenshotMinIntervalInSec * 1000) {
       this.config.logScreenshotLastTime = Date.now();
-      Utils.saveScreenshotToDisk(this.config.logScreenshotFolder, 'log', true, undefined, DEFAULT_REROUTER_CONFIG.saveImageRoot);
-      Utils.removeOldestFilesIfExceedsLimit(this.config.logScreenshotFolder, this.config.logScreenshotMaxFiles, DEFAULT_REROUTER_CONFIG.saveImageRoot);
+      
+      // Build folder path with date if maxDays is configured
+      let folderPath = this.config.logScreenshotFolder;
+      if (this.config.logScreenshotMaxDays > 0) {
+        const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);
+        const datePart = timeStr.split(' ')[0];
+        folderPath = `${this.config.logScreenshotFolder}/${datePart}`;
+      }
+      
+      Utils.saveScreenshotToDisk(
+        folderPath,
+        'log',
+        true,
+        undefined,
+        DEFAULT_REROUTER_CONFIG.saveImageRoot
+      );
+      Utils.removeOldestFilesIfExceedsLimit(
+        this.config.logScreenshotFolder,
+        this.config.logScreenshotMaxFiles,
+        this.config.logScreenshotMaxDays,
+        DEFAULT_REROUTER_CONFIG.saveImageRoot
+      );
     }
   }
 
