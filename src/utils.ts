@@ -240,8 +240,8 @@ export class Utils {
       const now = Date.now() / 1000;
       const cutoffTime = now - maxDays * 24 * 60 * 60;
 
-      // Use basic ls to find date folders (more reliable than find on Android)
-      const folders = execute(`ls -d ${baseFolder}/*/ 2>/dev/null || true`).trim();
+      // Use ls -d1 to find date folders (more reliable than find on Android), one per line
+      const folders = execute(`ls -d1 ${baseFolder}/*/ 2>/dev/null || true`).trim();
       if (!folders) return;
 
       let deletedFolders = 0;
@@ -273,29 +273,33 @@ export class Utils {
 
   private static cleanupByFileCount(baseFolder: string, maxFiles: number): void {
     try {
-      // Use ls -t directly to get files sorted by time (newest first)
-      const sortedFiles = execute(`ls -t ${baseFolder}/* 2>/dev/null || true`).trim();
+      // Use ls -t1 to get files sorted by time (newest first), one per line
+      const sortedFiles = execute(`ls -t1 ${baseFolder} 2>/dev/null || true`).trim();
       if (!sortedFiles) return;
 
-      const fileList = sortedFiles.split('\n').filter(f => f.trim());
+      const fileList = sortedFiles
+        .split('\n')
+        .filter(f => f.trim())
+        .map(f => `${baseFolder}/${f}`);
       if (fileList.length <= maxFiles) return;
 
       // Keep newest files, delete the rest
       const filesToDelete = fileList.slice(maxFiles);
 
-      // Delete files one by one to avoid command length issues
+      // Delete files/folders one by one to avoid command length issues
       let deletedCount = 0;
       for (const file of filesToDelete) {
         try {
-          execute(`rm "${file}"`);
+          // Use rm -rf to handle both files and directories
+          execute(`rm -rf "${file}"`);
           deletedCount++;
         } catch (e) {
-          console.warn(`Failed to delete file: ${file}`);
+          console.warn(`Failed to delete: ${file}`);
         }
       }
 
       if (deletedCount > 0) {
-        console.log(`Deleted ${deletedCount} oldest files, keeping newest ${maxFiles} files`);
+        console.log(`Deleted ${deletedCount} oldest items, keeping newest ${maxFiles} items`);
       }
     } catch (error: any) {
       console.warn(`File cleanup failed: ${error.message}`);
