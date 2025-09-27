@@ -1040,7 +1040,7 @@ export class Rerouter {
     if (this.screenFrozenTimes >= 10) {
       console.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
       releaseImage(this.lastScreenshotImage);
-      this.sendLog('Rerouter', 'warning', 'ScreenFrozen', 'Screen is frozen for more than 10 times (minutes), restarting emulator...');
+      this.sendLog('Rerouter', 'info', 'ScreenFrozen', 'Screen is frozen for more than 10 times (minutes), restarting emulator...');
       this.stopEmulator();
     }
   }
