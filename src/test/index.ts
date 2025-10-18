@@ -82,7 +82,6 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
 
   const files = fs.readdirSync(screenshotsPath);
   const errorMessages: string[] = [];
-  const warningMessages: string[] = [];
 
   for (const file of files) {
     if (!file.endsWith('.png')) {
@@ -102,17 +101,12 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
     const matches: { matchedRoute: Required<RouteConfig>; matchedPages: Page[] }[] = (rerouter as any).findMatchedRouteImpl('', imageData, rotation);
 
     if (matches.length === 0) {
-      handleNoMatches(file, warningMessages);
+      handleNoMatches(file, errorMessages);
     } else if (matches.length === 1) {
       handleSingleMatch(file, matches[0], errorMessages, verbose);
     } else if (matches.length > 1) {
       handleMultipleMatches(file, matches, errorMessages, verbose);
     }
-  }
-
-  // Display warnings
-  if (warningMessages.length > 0) {
-    console.warn(`Warnings encountered:\n${warningMessages.join('\n')}`);
   }
 
   // Handle errors
@@ -126,7 +120,7 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   }
 }
 
-function handleNoMatches(file: string, warningMessages: string[]) {
+function handleNoMatches(file: string, errorMessages: string[]) {
   const fileNameWithoutExtension = path.basename(file, '.png');
   const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
 
@@ -142,7 +136,7 @@ function handleNoMatches(file: string, warningMessages: string[]) {
     message += ` - should match route ${expectedRoute.path}`;
   }
 
-  warningMessages.push(message);
+  errorMessages.push(message);
 }
 
 function validateFileNameMatch(file: string, matchedRoute: RouteConfig, matchedPages: Page[]): { isValid: boolean; fileNameWithOnlyFirstName: string } {
