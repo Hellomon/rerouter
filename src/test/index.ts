@@ -1,5 +1,6 @@
 import { rerouter } from '../rerouter';
-import { Page, RouteConfig } from '../struct';
+import { Page, RouteConfig, GroupPage, XYRGB } from '../struct';
+import { Utils } from '../utils';
 
 // Keep imports minimal to avoid pulling in test frameworks
 // Use require to avoid needing Node types in the library build
@@ -82,7 +83,6 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
 
   const files = fs.readdirSync(screenshotsPath);
   const errorMessages: string[] = [];
-  const warningMessages: string[] = [];
 
   for (const file of files) {
     if (!file.endsWith('.png')) {
@@ -102,17 +102,12 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
     const matches: { matchedRoute: Required<RouteConfig>; matchedPages: Page[] }[] = (rerouter as any).findMatchedRouteImpl('', imageData, rotation);
 
     if (matches.length === 0) {
-      handleNoMatches(file, warningMessages);
+      handleNoMatches(file, errorMessages, imageData, verbose);
     } else if (matches.length === 1) {
       handleSingleMatch(file, matches[0], errorMessages, verbose);
     } else if (matches.length > 1) {
       handleMultipleMatches(file, matches, errorMessages, verbose);
     }
-  }
-
-  // Display warnings
-  if (warningMessages.length > 0) {
-    console.warn(`Warnings encountered:\n${warningMessages.join('\n')}`);
   }
 
   // Handle errors
@@ -126,8 +121,78 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   }
 }
 
-function handleNoMatches(file: string, warningMessages: string[]) {
-  warningMessages.push(`No route matches image ${file}`);
+function handleNoMatches(file: string, errorMessages: string[], imageData: Image, verbose: boolean) {
+  const fileNameWithoutExtension = path.basename(file, '.png');
+  const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
+
+  // Get all available routes to find expected match
+  const availableRoutes = rerouter.getRoutes();
+  const expectedRoute = availableRoutes.find(route => {
+    const routePathWithoutHeadSlash = (route.path || '').split('/')[1];
+    return routePathWithoutHeadSlash === fileNameWithOnlyFirstName;
+  });
+
+  let message = `No route matches image ${file} (expected: ${fileNameWithOnlyFirstName})`;
+  if (expectedRoute) {
+    message += ` - should match route ${expectedRoute.path}`;
+
+    // In verbose mode, show pixel differences
+    if (verbose) {
+      const pixelDiffs = checkPixelDifferences(expectedRoute, imageData);
+      if (pixelDiffs.length > 0) {
+        message += `\n  Pixel differences:`;
+        pixelDiffs.forEach(diff => {
+          message +=
+            `\n    Point[${diff.index}] mismatch: score: ${diff.score.toFixed(3)}, thres: ${diff.thres}` +
+            `\n      expect: ${Utils.formatXYRGB(diff.expected)}` +
+            `\n      got:    ${Utils.formatXYRGB(diff.actual)}`;
+        });
+      }
+    }
+  }
+
+  errorMessages.push(message);
+}
+
+function checkPixelDifferences(route: RouteConfig, imageData: Image): Array<{ index: number; expected: XYRGB; actual: XYRGB; score: number; thres: number }> {
+  const diffs: Array<{ index: number; expected: XYRGB; actual: XYRGB; score: number; thres: number }> = [];
+
+  if (!route.match) {
+    return diffs;
+  }
+
+  const defaultThres = (rerouter as any).defaultConfig.PageThres;
+  const pages: Page[] = [];
+
+  if (route.match instanceof Page) {
+    pages.push(route.match);
+  } else if (route.match instanceof GroupPage) {
+    pages.push(...route.match.pages);
+  }
+
+  for (const page of pages) {
+    const pageThres = page.thres;
+    for (let i = 0; i < page.points.length; i++) {
+      const point = page.points[i];
+      const thres = point.thres ?? pageThres ?? defaultThres;
+      const shouldMatch = point.match ?? true;
+      const color = getImageColor(imageData, point.x, point.y);
+      const score = Utils.identityColor(point, color);
+      const isPointColorMatch = score >= thres === shouldMatch;
+
+      if (!isPointColorMatch) {
+        diffs.push({
+          index: i,
+          expected: point,
+          actual: { ...color, x: point.x, y: point.y },
+          score,
+          thres,
+        });
+      }
+    }
+  }
+
+  return diffs;
 }
 
 function validateFileNameMatch(file: string, matchedRoute: RouteConfig, matchedPages: Page[]): { isValid: boolean; fileNameWithOnlyFirstName: string } {
