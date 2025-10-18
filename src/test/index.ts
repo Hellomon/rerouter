@@ -140,13 +140,12 @@ function handleNoMatches(file: string, errorMessages: string[], imageData: Image
     if (verbose) {
       const pixelDiffs = checkPixelDifferences(expectedRoute, imageData);
       if (pixelDiffs.length > 0) {
-        console.log(`\nPixel differences for ${file}:`);
+        message += `\n  Pixel differences:`;
         pixelDiffs.forEach(diff => {
-          console.log(
-            `  Point[${diff.index}] mismatch: score: ${diff.score.toFixed(3)}, thres: ${diff.thres}\n` +
-              `    expect: ${Utils.formatXYRGB(diff.expected)}\n` +
-              `    got:    ${Utils.formatXYRGB(diff.actual)}`
-          );
+          message +=
+            `\n    Point[${diff.index}] mismatch: score: ${diff.score.toFixed(3)}, thres: ${diff.thres}` +
+            `\n      expect: ${Utils.formatXYRGB(diff.expected)}` +
+            `\n      got:    ${Utils.formatXYRGB(diff.actual)}`;
         });
       }
     }
