@@ -127,7 +127,22 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
 }
 
 function handleNoMatches(file: string, warningMessages: string[]) {
-  warningMessages.push(`No route matches image ${file}`);
+  const fileNameWithoutExtension = path.basename(file, '.png');
+  const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
+
+  // Get all available routes to find expected match
+  const availableRoutes = rerouter.getRoutes();
+  const expectedRoute = availableRoutes.find(route => {
+    const routePathWithoutHeadSlash = (route.path || '').split('/')[1];
+    return routePathWithoutHeadSlash === fileNameWithOnlyFirstName;
+  });
+
+  let message = `No route matches image ${file} (expected: ${fileNameWithOnlyFirstName})`;
+  if (expectedRoute) {
+    message += ` - should match route ${expectedRoute.path}`;
+  }
+
+  warningMessages.push(message);
 }
 
 function validateFileNameMatch(file: string, matchedRoute: RouteConfig, matchedPages: Page[]): { isValid: boolean; fileNameWithOnlyFirstName: string } {
