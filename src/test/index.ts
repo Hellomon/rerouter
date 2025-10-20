@@ -127,18 +127,42 @@ function handleNoMatches(file: string, errorMessages: string[], imageData: Image
 
   // Get all available routes to find expected match
   const availableRoutes = rerouter.getRoutes();
-  const expectedRoute = availableRoutes.find(route => {
+  let expectedPage: Page | null = null;
+  let expectedRoutePath: string | null = null;
+
+  for (const route of availableRoutes) {
     const routePathWithoutHeadSlash = (route.path || '').split('/')[1];
-    return routePathWithoutHeadSlash === fileNameWithOnlyFirstName;
-  });
+
+    // Check if route path matches filename
+    if (routePathWithoutHeadSlash === fileNameWithOnlyFirstName) {
+      expectedRoutePath = route.path;
+      // Find the page by name
+      if (route.match instanceof Page) {
+        expectedPage = route.match;
+      } else if (route.match instanceof GroupPage) {
+        expectedPage = route.match.pages.find(page => page.name === fileNameWithOnlyFirstName) || null;
+      }
+      break;
+    }
+
+    // Check if this route has a GroupPage with pages matching the filename
+    if (route.match instanceof GroupPage) {
+      const matchingPage = route.match.pages.find(page => page.name === fileNameWithOnlyFirstName);
+      if (matchingPage) {
+        expectedPage = matchingPage;
+        expectedRoutePath = route.path;
+        break;
+      }
+    }
+  }
 
   let message = `No route matches image ${file} (expected: ${fileNameWithOnlyFirstName})`;
-  if (expectedRoute) {
-    message += ` - should match route ${expectedRoute.path}`;
+  if (expectedRoutePath) {
+    message += ` - should match route ${expectedRoutePath}`;
 
-    // In verbose mode, show pixel differences
-    if (verbose) {
-      const pixelDiffs = checkPixelDifferences(expectedRoute, imageData);
+    // In verbose mode, show pixel differences for the expected page
+    if (verbose && expectedPage) {
+      const pixelDiffs = checkPixelDifferences(expectedPage, imageData);
       if (pixelDiffs.length > 0) {
         message += `\n  Pixel differences:`;
         pixelDiffs.forEach(diff => {
@@ -154,41 +178,27 @@ function handleNoMatches(file: string, errorMessages: string[], imageData: Image
   errorMessages.push(message);
 }
 
-function checkPixelDifferences(route: RouteConfig, imageData: Image): Array<{ index: number; expected: XYRGB; actual: XYRGB; score: number; thres: number }> {
+function checkPixelDifferences(page: Page, imageData: Image): Array<{ index: number; expected: XYRGB; actual: XYRGB; score: number; thres: number }> {
   const diffs: Array<{ index: number; expected: XYRGB; actual: XYRGB; score: number; thres: number }> = [];
-
-  if (!route.match) {
-    return diffs;
-  }
-
   const defaultThres = (rerouter as any).defaultConfig.PageThres;
-  const pages: Page[] = [];
+  const pageThres = page.thres;
 
-  if (route.match instanceof Page) {
-    pages.push(route.match);
-  } else if (route.match instanceof GroupPage) {
-    pages.push(...route.match.pages);
-  }
+  for (let i = 0; i < page.points.length; i++) {
+    const point = page.points[i];
+    const thres = point.thres ?? pageThres ?? defaultThres;
+    const shouldMatch = point.match ?? true;
+    const color = getImageColor(imageData, point.x, point.y);
+    const score = Utils.identityColor(point, color);
+    const isPointColorMatch = score >= thres === shouldMatch;
 
-  for (const page of pages) {
-    const pageThres = page.thres;
-    for (let i = 0; i < page.points.length; i++) {
-      const point = page.points[i];
-      const thres = point.thres ?? pageThres ?? defaultThres;
-      const shouldMatch = point.match ?? true;
-      const color = getImageColor(imageData, point.x, point.y);
-      const score = Utils.identityColor(point, color);
-      const isPointColorMatch = score >= thres === shouldMatch;
-
-      if (!isPointColorMatch) {
-        diffs.push({
-          index: i,
-          expected: point,
-          actual: { ...color, x: point.x, y: point.y },
-          score,
-          thres,
-        });
-      }
+    if (!isPointColorMatch) {
+      diffs.push({
+        index: i,
+        expected: point,
+        actual: { ...color, x: point.x, y: point.y },
+        score,
+        thres,
+      });
     }
   }
 
