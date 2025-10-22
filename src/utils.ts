@@ -124,7 +124,23 @@ export class Utils {
     return [packageName, activityName];
   }
 
+  public static isScreenAsleep(): boolean {
+    const powerInfo = execute('dumpsys power | grep getWakefulnessLocked');
+    // getWakefulnessLocked()=Asleep means screen is asleep
+    // getWakefulnessLocked()=Awake means screen is awake
+    // getWakefulnessLocked()=Dozing means screen is dozing (also treated as asleep)
+    return powerInfo.indexOf('getWakefulnessLocked()=Asleep') !== -1 || powerInfo.indexOf('getWakefulnessLocked()=Dozing') !== -1;
+  }
+
   public static isAppOnTop(packageName: string): boolean {
+    // Check if screen is asleep first
+    if (Utils.isScreenAsleep()) {
+      // Press wakeup to wake up the screen
+      console.log('Screen is asleep, pressing WAKEUP to wake up');
+      keycode('WAKEUP', 100);
+      Utils.sleep(500);
+    }
+
     const topInfo = execute('dumpsys activity activities | grep mResumedActivity');
     // mResumedActivity: ActivityRecord{29199c5 u0 com.linecorp.LGTMTMG/com.linecorp.LGTMTM.TsumTsum t1872}
     return topInfo.indexOf(`${packageName}/`) !== -1;
