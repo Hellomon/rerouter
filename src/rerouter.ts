@@ -25,6 +25,8 @@ export class Rerouter {
   private routeContext: RouteContext | null = null;
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private startAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
+  private checkAndStartAppAction: ((args: { packageName: string; screen: Screen; checkInApp: () => boolean; defaultStartApp: () => void }) => void) | null =
+    null;
   private globalBeforeRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
   private globalAfterRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
   private globalBeforeTaskAction: ((task: Task) => void | 'skipRouteLoop') | null = null;
@@ -131,6 +133,12 @@ export class Rerouter {
     this.startAppRouteAction = action;
   }
 
+  public addCheckAndStartAppAction(
+    action: ((args: { packageName: string; screen: Screen; checkInApp: () => boolean; defaultStartApp: () => void }) => void) | null
+  ): void {
+    this.checkAndStartAppAction = action;
+  }
+
   /**
    * Set global beforeRoute callback that executes before every route action
    * @param action function to execute before any route action
@@ -227,8 +235,21 @@ export class Rerouter {
 
   public checkAndStartApp(): boolean {
     if (!this.checkInApp()) {
-      this.log(`AppIsNotStarted, startApp ${this.rerouterConfig.packageName}`);
-      this.startApp();
+      this.log(`AppIsNotStarted, bringing app to front ${this.rerouterConfig.packageName}`);
+
+      if (this.checkAndStartAppAction !== null) {
+        this.log('Using custom checkAndStartApp action');
+        this.checkAndStartAppAction({
+          packageName: this.rerouterConfig.packageName,
+          screen: this.screen,
+          checkInApp: () => this.checkInApp(),
+          defaultStartApp: () => this.startApp(),
+        });
+      } else {
+        this.log('Using default startApp behavior');
+        this.startApp();
+      }
+
       return true;
     }
     return false;
@@ -480,7 +501,7 @@ export class Rerouter {
       task.startTime = now;
       task.runTimes = 0;
       let exitTask = false;
-      
+
       // Execute global beforeTask callback if defined
       let globalSkipRoute = false;
       if (this.globalBeforeTaskAction !== null) {
@@ -523,7 +544,7 @@ export class Rerouter {
           break;
         }
       }
-      
+
       // Execute global afterTask callback if defined
       if (this.globalAfterTaskAction !== null) {
         this.log(`Global afterTask executing for task: ${task.name}`);
@@ -533,7 +554,7 @@ export class Rerouter {
           this.warning(`Global afterTask callback error for task: ${task.name}`, error);
         }
       }
-      
+
       Utils.sleep(this.rerouterConfig.taskDelay);
     }
   }
