@@ -230,14 +230,6 @@ export class Rerouter {
     return Utils.isAppOnTop(this.rerouterConfig.packageName);
   }
 
-  public checkAndStartApp(): boolean {
-    if (!this.checkInApp()) {
-      this.log(`AppIsNotStarted, startApp ${this.rerouterConfig.packageName}`);
-      this.startApp();
-      return true;
-    }
-    return false;
-  }
   public startApp(maxRetries: number = 3, retryDelay: number = 3000): void {
     this.log('startApp: start');
 
@@ -582,20 +574,20 @@ export class Rerouter {
       if (this.rerouterConfig.autoLaunchApp) {
         if (!this.checkInApp()) {
           this.log(`AppIsNotStarted, startApp ${this.rerouterConfig.packageName}`);
-          
+
           // Execute before start app action
           if (this.beforeStartAppRouteAction !== null) {
             this.beforeStartAppRouteAction(context, finishRoundFunc);
           }
-          
+
           // Start the app
           this.startApp();
-          
+
           // Execute after start app action
           if (this.afterStartAppRouteAction !== null) {
             this.afterStartAppRouteAction(context, finishRoundFunc);
           }
-          
+
           continue;
         }
       }
