@@ -24,7 +24,7 @@ export class Rerouter {
   private tasks: Required<Task>[] = [];
   private routeContext: RouteContext | null = null;
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
-  private startAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
+  private afterStartAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private globalBeforeRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
   private globalAfterRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
   private globalBeforeTaskAction: ((task: Task) => void | 'skipRouteLoop') | null = null;
@@ -127,8 +127,8 @@ export class Rerouter {
     this.unknownRouteAction = action;
   }
 
-  public addStartAppAction(action: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null): void {
-    this.startAppRouteAction = action;
+  public addAfterStartAppAction(action: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null): void {
+    this.afterStartAppRouteAction = action;
   }
 
   /**
@@ -480,7 +480,7 @@ export class Rerouter {
       task.startTime = now;
       task.runTimes = 0;
       let exitTask = false;
-      
+
       // Execute global beforeTask callback if defined
       let globalSkipRoute = false;
       if (this.globalBeforeTaskAction !== null) {
@@ -523,7 +523,7 @@ export class Rerouter {
           break;
         }
       }
-      
+
       // Execute global afterTask callback if defined
       if (this.globalAfterTaskAction !== null) {
         this.log(`Global afterTask executing for task: ${task.name}`);
@@ -533,7 +533,7 @@ export class Rerouter {
           this.warning(`Global afterTask callback error for task: ${task.name}`, error);
         }
       }
-      
+
       Utils.sleep(this.rerouterConfig.taskDelay);
     }
   }
@@ -576,8 +576,8 @@ export class Rerouter {
       // check isAppOn or auto launch it
       if (this.rerouterConfig.autoLaunchApp) {
         if (this.checkAndStartApp()) {
-          if (this.startAppRouteAction !== null) {
-            this.startAppRouteAction(context, finishRoundFunc);
+          if (this.afterStartAppRouteAction !== null) {
+            this.afterStartAppRouteAction(context, finishRoundFunc);
           }
           continue;
         }
