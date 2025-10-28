@@ -24,6 +24,7 @@ export class Rerouter {
   private tasks: Required<Task>[] = [];
   private routeContext: RouteContext | null = null;
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
+  private beforeStartAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private afterStartAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private globalBeforeRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
   private globalAfterRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
@@ -127,6 +128,10 @@ export class Rerouter {
     this.unknownRouteAction = action;
   }
 
+  public addBeforeStartAppAction(action: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null): void {
+    this.beforeStartAppRouteAction = action;
+  }
+
   public addAfterStartAppAction(action: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null): void {
     this.afterStartAppRouteAction = action;
   }
@@ -225,14 +230,6 @@ export class Rerouter {
     return Utils.isAppOnTop(this.rerouterConfig.packageName);
   }
 
-  public checkAndStartApp(): boolean {
-    if (!this.checkInApp()) {
-      this.log(`AppIsNotStarted, startApp ${this.rerouterConfig.packageName}`);
-      this.startApp();
-      return true;
-    }
-    return false;
-  }
   public startApp(maxRetries: number = 3, retryDelay: number = 3000): void {
     this.log('startApp: start');
 
@@ -575,10 +572,22 @@ export class Rerouter {
 
       // check isAppOn or auto launch it
       if (this.rerouterConfig.autoLaunchApp) {
-        if (this.checkAndStartApp()) {
+        if (!this.checkInApp()) {
+          this.log(`AppIsNotStarted, startApp ${this.rerouterConfig.packageName}`);
+
+          // Execute before start app action
+          if (this.beforeStartAppRouteAction !== null) {
+            this.beforeStartAppRouteAction(context, finishRoundFunc);
+          }
+
+          // Start the app
+          this.startApp();
+
+          // Execute after start app action
           if (this.afterStartAppRouteAction !== null) {
             this.afterStartAppRouteAction(context, finishRoundFunc);
           }
+
           continue;
         }
       }
