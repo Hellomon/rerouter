@@ -132,12 +132,24 @@ export class Utils {
     return powerInfo.indexOf('getWakefulnessLocked()=Asleep') !== -1 || powerInfo.indexOf('getWakefulnessLocked()=Dozing') !== -1;
   }
 
+  public static isGameBoosterLockScreen(): boolean {
+    const gameBoosterInfo = execute('dumpsys window | grep -A1 "DisplayPolicyExtension" | grep -i "GameBooster"');
+    return gameBoosterInfo.indexOf('GameBooster Lock Screen') !== -1 || gameBoosterInfo.toLowerCase().indexOf('gamebooster') !== -1;
+  }
+
   public static isAppOnTop(packageName: string): boolean {
     // Check if screen is asleep first
     if (Utils.isScreenAsleep()) {
       // Press wakeup to wake up the screen
       console.log('Screen is asleep, pressing WAKEUP to wake up');
       keycode('WAKEUP', 100);
+      Utils.sleep(500);
+    }
+
+    // Check for GameBooster Lock Screen
+    if (Utils.isGameBoosterLockScreen()) {
+      console.log('GameBooster Lock Screen detected, attempting to remove gametool process');
+      execute('am force-stop com.samsung.android.game.gametools');
       Utils.sleep(500);
     }
 
