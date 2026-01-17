@@ -445,8 +445,6 @@ export class Rerouter {
   }
 
   private wrapTaskConfigWithDefault(config: TaskConfig): Required<TaskConfig> {
-    const beforeTask = config.beforeTask ?? config.beforeRoute ?? null;
-    const afterTask = config.afterTask ?? config.afterRoute ?? null;
     return {
       name: config.name,
       maxTaskRunTimes: config.maxTaskRunTimes ?? this.defaultConfig.TaskConfigMaxTaskRunTimes,
@@ -454,10 +452,8 @@ export class Rerouter {
       minRoundInterval: config.minRoundInterval ?? this.defaultConfig.TaskConfigMinRoundInterval,
       forceStop: config.forceStop ?? this.defaultConfig.TaskConfigAutoStop,
       findRouteDelay: config.findRouteDelay ?? this.defaultConfig.TaskConfigFindRouteDelay,
-      beforeTask,
-      afterTask,
-      beforeRoute: beforeTask,
-      afterRoute: afterTask,
+      beforeTask: config.beforeTask ?? null,
+      afterTask: config.afterTask ?? null,
     };
   }
 
@@ -494,9 +490,9 @@ export class Rerouter {
       for (let i = 0; i < task.config.maxTaskRunTimes && this.running && !exitTask; i++) {
         this.log(`Task: ${task.name} run ${task.runTimes}`);
         let skipRoute = globalSkipRoute;
-        if (task.config.beforeRoute !== null) {
-          this.log(`Task: ${task.name} run ${task.runTimes} do beforeRoute()`);
-          if (task.config.beforeRoute(task) === 'skipRouteLoop') {
+        if (task.config.beforeTask !== null) {
+          this.log(`Task: ${task.name} run ${task.runTimes} do beforeTask()`);
+          if (task.config.beforeTask(task) === 'skipRouteLoop') {
             skipRoute = true;
           }
         }
@@ -507,9 +503,9 @@ export class Rerouter {
           exitTask = this.startRouteLoop(task);
         }
 
-        if (task.config.afterRoute !== null) {
-          this.log(`Task: ${task.name} run ${task.runTimes} do afterRoute()`);
-          task.config.afterRoute(task);
+        if (task.config.afterTask !== null) {
+          this.log(`Task: ${task.name} run ${task.runTimes} do afterTask()`);
+          task.config.afterTask(task);
         }
 
         task.runTimes++;

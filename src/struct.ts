@@ -164,18 +164,6 @@ export interface TaskConfig {
   beforeTask?: null | ((task: Task) => void | 'skipRouteLoop');
   /** Callback function executed after the task completes */
   afterTask?: null | ((task: Task) => void);
-  /**
-   * Alias for beforeTask (for backward compatibility).
-   * Callback function executed before entering the route matching loop.
-   * @deprecated Use beforeTask instead. This will be removed in future versions.
-   */
-  beforeRoute?: null | ((task: Task) => void | 'skipRouteLoop');
-  /**
-   * Alias for afterTask (for backward compatibility).
-   * Callback function executed after the task completes.
-   * @deprecated Use afterTask instead. This will be removed in future versions.
-   */
-  afterRoute?: null | ((task: Task) => void);
 }
 
 export interface Task {
