@@ -108,6 +108,7 @@ declare global {
     accessKey: string,
     token: string,
     ssl: boolean,
+    ifNotExists?: boolean,
 
     // fake optional parameters
     retry?: number,
@@ -156,6 +157,7 @@ if (typeof s3UploadFile === 'function') {
     accessKey: string,
     token: string,
     ssl: boolean,
+    ifNotExists: boolean = false,
     retry: number = 3,
     retryInterval: number = 10_000
   ): number | string => {
@@ -164,7 +166,7 @@ if (typeof s3UploadFile === 'function') {
       if (r > 0) {
         sleep(retryInterval);
       }
-      sizeOrErrorMsg = s3UploadFileTmp(filepath, objectName, contentType, endpoint, bucket, keyId, accessKey, token, ssl);
+      sizeOrErrorMsg = s3UploadFileTmp(filepath, objectName, contentType, endpoint, bucket, keyId, accessKey, token, ssl, ifNotExists);
       if (typeof sizeOrErrorMsg === 'number') {
         break;
       }
