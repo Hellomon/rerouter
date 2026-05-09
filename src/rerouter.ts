@@ -223,11 +223,12 @@ export class Rerouter {
   }
 
   public checkInApp(): boolean {
+    const allPackageNames = [this.rerouterConfig.packageName, ...this.rerouterConfig.inAppExtraPackageNames];
     const [packageName] = Utils.getCurrentApp();
-    if (packageName === this.rerouterConfig.packageName) {
+    if (allPackageNames.includes(packageName)) {
       return true;
     }
-    return Utils.isAppOnTop(this.rerouterConfig.packageName);
+    return Utils.isAppOnTop(allPackageNames);
   }
 
   public startApp(maxRetries: number = 3, retryDelay: number = 3000): void {
