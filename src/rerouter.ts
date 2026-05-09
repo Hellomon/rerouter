@@ -225,7 +225,7 @@ export class Rerouter {
   public checkInApp(): boolean {
     const allPackageNames = [this.rerouterConfig.packageName, ...this.rerouterConfig.inAppExtraPackageNames];
     const [packageName] = Utils.getCurrentApp();
-    if (allPackageNames.includes(packageName)) {
+    if (allPackageNames.indexOf(packageName) !== -1) {
       return true;
     }
     return Utils.isAppOnTop(allPackageNames);
