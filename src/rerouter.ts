@@ -227,7 +227,7 @@ export class Rerouter {
     if (packageName === this.rerouterConfig.packageName) {
       return true;
     }
-    if (this.rerouterConfig.allowedPackages.includes(packageName)) {
+    if (this.rerouterConfig.inAppPackageNames.includes(packageName)) {
       return true;
     }
     return Utils.isAppOnTop(this.rerouterConfig.packageName);
