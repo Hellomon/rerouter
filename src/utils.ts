@@ -173,7 +173,12 @@ export class Utils {
     const topInfo = execute('dumpsys activity activities | grep mResumedActivity');
     // mResumedActivity: ActivityRecord{29199c5 u0 com.linecorp.LGTMTMG/com.linecorp.LGTMTM.TsumTsum t1872}
     const packageNames = Array.isArray(packageName) ? packageName : [packageName];
-    return packageNames.some(pkg => topInfo.indexOf(`${pkg}/`) !== -1);
+    for (var i = 0; i < packageNames.length; i++) {
+      if (topInfo.indexOf(`${packageNames[i]}/`) !== -1) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public static sendSlackMessage(url: string, title: string, message: string) {
