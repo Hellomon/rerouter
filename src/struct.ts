@@ -198,7 +198,7 @@ export interface RerouterConfig {
   startAppDelay: number;
   autoLaunchApp: boolean;
   /** Additional package names considered as "in app" (e.g. browser/WebView during OAuth login flow) */
-  inAppPackageNames: string[];
+  inAppExtraPackageNames: string[];
   testingScreenshotPath: string;
   instanceId: string; // the ID of the framework instance
   deviceId: string; // the ID of the device the framework runs on

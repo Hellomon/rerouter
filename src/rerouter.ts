@@ -223,7 +223,7 @@ export class Rerouter {
   }
 
   public checkInApp(): boolean {
-    const allPackageNames = [this.rerouterConfig.packageName, ...this.rerouterConfig.inAppPackageNames];
+    const allPackageNames = [this.rerouterConfig.packageName, ...this.rerouterConfig.inAppExtraPackageNames];
     const [packageName] = Utils.getCurrentApp();
     if (allPackageNames.includes(packageName)) {
       return true;
