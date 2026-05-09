@@ -230,7 +230,7 @@ export class Rerouter {
     if (this.rerouterConfig.inAppPackageNames.includes(packageName)) {
       return true;
     }
-    return Utils.isAppOnTop(this.rerouterConfig.packageName);
+    return Utils.isAppOnTop([this.rerouterConfig.packageName, ...this.rerouterConfig.inAppPackageNames]);
   }
 
   public startApp(maxRetries: number = 3, retryDelay: number = 3000): void {

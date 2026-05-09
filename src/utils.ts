@@ -154,7 +154,7 @@ export class Utils {
     return gameBoosterInfo.indexOf('GameBooster Lock Screen') !== -1 || gameBoosterInfo.toLowerCase().indexOf('gamebooster') !== -1;
   }
 
-  public static isAppOnTop(packageName: string): boolean {
+  public static isAppOnTop(packageName: string | string[]): boolean {
     // Check if screen is asleep first
     if (Utils.isScreenAsleep()) {
       // Press wakeup to wake up the screen
@@ -172,7 +172,8 @@ export class Utils {
 
     const topInfo = execute('dumpsys activity activities | grep mResumedActivity');
     // mResumedActivity: ActivityRecord{29199c5 u0 com.linecorp.LGTMTMG/com.linecorp.LGTMTM.TsumTsum t1872}
-    return topInfo.indexOf(`${packageName}/`) !== -1;
+    const packageNames = Array.isArray(packageName) ? packageName : [packageName];
+    return packageNames.some(pkg => topInfo.indexOf(`${pkg}/`) !== -1);
   }
 
   public static sendSlackMessage(url: string, title: string, message: string) {
