@@ -151,7 +151,10 @@ export class Utils {
 
   public static isGameBoosterLockScreen(): boolean {
     const gameBoosterInfo = execute('dumpsys window | grep -A1 "DisplayPolicyExtension" | grep -i "GameBooster"');
-    return gameBoosterInfo.indexOf('GameBooster Lock Screen') !== -1 || gameBoosterInfo.toLowerCase().indexOf('gamebooster') !== -1;
+    if (!gameBoosterInfo || gameBoosterInfo.indexOf('exit status 1') !== -1) {
+      return false;
+    }
+    return gameBoosterInfo.indexOf('GameBooster Lock Screen') !== -1;
   }
 
   public static isAppOnTop(packageName: string | string[]): boolean {
