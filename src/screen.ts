@@ -151,18 +151,6 @@ export class Screen {
     }
   }
 
-  public findImage(devImg: Image): { score: number; x: number; y: number } {
-    const img = this.getCvtDevScreenshot();
-    const result = findImage(img, devImg);
-    releaseImage(img);
-    return result;
-  }
-
-  public tapImage(devImg: Image) {
-    const xy = this.findImage(devImg);
-    this.tap(xy);
-  }
-
   public isSameColor(devColorPoint: XYRGB, thres: number = 0.9): boolean {
     const rgb = this.getScreenColor(devColorPoint);
     const score = Utils.identityColor(rgb, devColorPoint);
