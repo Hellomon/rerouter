@@ -225,7 +225,6 @@ export type ConflictRoutesHandler = (args: {
 }) => void;
 
 export interface ConfigValue {
-  XYRGBThres: number;
   PageThres: number;
   GroupPageThres: number;
   GroupPageMatchOP: '||' | '&&';

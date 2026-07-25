@@ -43,7 +43,6 @@ export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
 
 // NOTE: we should not use this config, but use rerouter.configValue instead
 export const DEFAULT_CONFIG_VALUE: ConfigValue = {
-  XYRGBThres: 0.9,
   PageThres: 0.9,
   GroupPageThres: 0.9,
   GroupPageMatchOP: '||',
