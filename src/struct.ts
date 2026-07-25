@@ -204,11 +204,6 @@ export interface RerouterConfig {
   deviceId: string; // the ID of the device the framework runs on
   strictMode: boolean;
   checkFrozenScreen: boolean; // enable/disable screen frozen detection
-  savePageReference?: {
-    enable: boolean;
-    folderPath: string;
-    rgba?: { r: number; g: number; b: number; a: number };
-  };
   debugSlackUrl: string;
   logger: {
     overrideGlobalConsole: boolean; // if true, this will override global console among all modules

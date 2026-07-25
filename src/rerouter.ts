@@ -75,11 +75,6 @@ export class Rerouter {
     this.screenConfig.screenHeight = this.screenConfig.screenHeight || dHeight;
     this.log(`screenWidth: ${this.screenConfig.screenWidth}, screenHeight: ${this.screenConfig.screenHeight}`);
     (this.screenConfig as any).logScreenshotFolder = this.rerouterConfig.deviceId; // Type assertion to bypass readonly restriction
-    if (this.rerouterConfig.savePageReference?.enable) {
-      const folderPath = this.rerouterConfig.savePageReference.folderPath || Utils.joinPaths(this.rerouterConfig.saveImageRoot, 'pageReference');
-      this.rerouterConfig.savePageReference.folderPath = folderPath;
-      execute(`mkdir -p ${folderPath}`);
-    }
 
     overrideConsole.setLogLevel(this.rerouterConfig.logger.logLevel);
     overrideConsole.setTimezoneOffsetHour(this.rerouterConfig.logger.timezoneOffsetHour);
@@ -696,7 +691,6 @@ export class Rerouter {
       this.warning(`Route: ${route.path} action execution error:`, error);
     }
 
-    this.savePageReferenceImage(image, matchedPages);
     Utils.sleep(route.afterActionDelay);
 
     // Execute afterRoute callback if defined
@@ -909,22 +903,6 @@ export class Rerouter {
     }
 
     return matchedPages;
-  }
-
-  private savePageReferenceImage(image: Image, matchedPages: Page[]): void {
-    const { enable, folderPath, rgba } = this.rerouterConfig.savePageReference || {};
-    if (!enable || !folderPath || matchedPages.length === 0) {
-      return;
-    }
-    matchedPages.forEach(page => {
-      Utils.savePointsMarkedImage({
-        image,
-        name: page.name,
-        points: page.points,
-        folderPath,
-        rgba,
-      });
-    });
   }
 
   private log(...args: any[]): void {
