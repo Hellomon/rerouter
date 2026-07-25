@@ -25,15 +25,6 @@ export class Utils {
     return `{ x: ${x}, y: ${y}, r: ${r}, g: ${g}, b: ${b} }`;
   }
 
-  public static sortStringNumberMap(map: { [key: string]: number }): { key: string; count: number }[] {
-    const results: { key: string; count: number }[] = [];
-    for (const key in map) {
-      results.push({ key, count: map[key] });
-    }
-    results.sort((a, b) => b.count - a.count);
-    return results;
-  }
-
   public static sleep(during: number) {
     while (during > 200) {
       during -= 200;
