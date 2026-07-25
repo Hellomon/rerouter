@@ -10,14 +10,6 @@ export class Screen {
     this.config = config;
   }
 
-  public calculateDeviceOffset(func: (screen: Screen) => { screenWidth: number; screenHeight: number; screenOffsetX: number; screenOffsetY: number }) {
-    const results = func(this);
-    this.config.screenWidth = results.screenWidth;
-    this.config.screenHeight = results.screenHeight;
-    this.config.screenOffsetX = results.screenOffsetX;
-    this.config.screenOffsetY = results.screenOffsetY;
-  }
-
   public getScreenX(devX: number): number {
     return Math.floor(this.config.screenOffsetX + (devX * this.config.screenWidth) / this.config.devWidth) || 0;
   }
