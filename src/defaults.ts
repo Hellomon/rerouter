@@ -7,7 +7,6 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   startAppDelay: 6000,
   autoLaunchApp: true,
   inAppExtraPackageNames: [],
-  testingScreenshotPath: './screenshot',
   instanceId: '',
   deviceId: '',
   strictMode: false,
