@@ -229,10 +229,6 @@ export class Utils {
     return false;
   }
 
-  public static padZero(num: number) {
-    return num < 10 ? `0${num}` : `${num}`;
-  }
-
   public static saveScreenshotToDisk(
     folderPath: string,
     suffix: string = '',
