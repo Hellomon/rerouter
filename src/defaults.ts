@@ -45,7 +45,6 @@ export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
 export const DEFAULT_CONFIG_VALUE: ConfigValue = {
   PageThres: 0.9,
   GroupPageThres: 0.9,
-  GroupPageMatchOP: '||',
   RouteConfigShouldMatchTimes: 1,
   RouteConfigShouldMatchDuring: 0,
   RouteConfigBeforeActionDelay: 250,

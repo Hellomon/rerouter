@@ -227,7 +227,6 @@ export type ConflictRoutesHandler = (args: {
 export interface ConfigValue {
   PageThres: number;
   GroupPageThres: number;
-  GroupPageMatchOP: '||' | '&&';
   RouteConfigShouldMatchTimes: number;
   RouteConfigShouldMatchDuring: number;
   RouteConfigBeforeActionDelay: number;
