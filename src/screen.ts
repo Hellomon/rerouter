@@ -4,8 +4,6 @@ import { DEFAULT_REROUTER_CONFIG } from './defaults';
 import { overrideConsole } from './overrides';
 
 export class Screen {
-  public static debug: boolean = false;
-
   private config: ScreenConfig;
 
   public constructor(config: ScreenConfig) {
