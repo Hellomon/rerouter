@@ -333,7 +333,7 @@ export class Rerouter {
     return match;
   }
 
-  public getPagesMatchImage(groupPage: GroupPage, image: Image, parentThres?: number, debug?: boolean): Page[] {
+  public getPagesMatchImage(groupPage: GroupPage, image: Image, parentThres?: number): Page[] {
     let pages: Page[] = [];
     const thres = groupPage.thres ?? parentThres ?? this.defaultConfig.PageThres;
 
