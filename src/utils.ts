@@ -140,12 +140,7 @@ export class Utils {
       return samsungDevice;
     }
     const manufacturer = execute('getprop ro.product.manufacturer');
-    if (!manufacturer || manufacturer.indexOf('exit status') !== -1) {
-      samsungDeviceKnown = true;
-      samsungDevice = false;
-      return false;
-    }
-    samsungDevice = manufacturer.toLowerCase().indexOf('samsung') !== -1;
+    samsungDevice = (manufacturer || '').toLowerCase().indexOf('samsung') !== -1;
     samsungDeviceKnown = true;
     return samsungDevice;
   }
