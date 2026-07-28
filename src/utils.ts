@@ -2,6 +2,9 @@
 import { overrideConsole } from './overrides';
 import { DEFAULT_REROUTER_CONFIG } from './defaults';
 
+var samsungDeviceKnown = false;
+var samsungDevice = false;
+
 export class Utils {
   public static identityColor(e1: RGB, e2: RGB) {
     const mean = (e1.r + e2.r) / 2;
@@ -132,6 +135,21 @@ export class Utils {
     return [packageName, activityName];
   }
 
+  public static isSamsungDevice(): boolean {
+    if (samsungDeviceKnown) {
+      return samsungDevice;
+    }
+    const manufacturer = execute('getprop ro.product.manufacturer');
+    if (!manufacturer || manufacturer.indexOf('exit status') !== -1) {
+      samsungDeviceKnown = true;
+      samsungDevice = false;
+      return false;
+    }
+    samsungDevice = manufacturer.toLowerCase().indexOf('samsung') !== -1;
+    samsungDeviceKnown = true;
+    return samsungDevice;
+  }
+
   public static isScreenAsleep(): boolean {
     const powerInfo = execute('dumpsys power | grep getWakefulnessLocked');
     // getWakefulnessLocked()=Asleep means screen is asleep
@@ -149,19 +167,21 @@ export class Utils {
   }
 
   public static isAppOnTop(packageName: string | string[]): boolean {
-    // Check if screen is asleep first
-    if (Utils.isScreenAsleep()) {
-      // Press wakeup to wake up the screen
-      console.log('Screen is asleep, pressing WAKEUP to wake up');
-      keycode('WAKEUP', 100);
-      Utils.sleep(500);
-    }
+    if (Utils.isSamsungDevice()) {
+      // Check if screen is asleep first
+      if (Utils.isScreenAsleep()) {
+        // Press wakeup to wake up the screen
+        console.log('Screen is asleep, pressing WAKEUP to wake up');
+        keycode('WAKEUP', 100);
+        Utils.sleep(500);
+      }
 
-    // Check for GameBooster Lock Screen
-    if (Utils.isGameBoosterLockScreen()) {
-      console.log('GameBooster Lock Screen detected, attempting to remove gametool process');
-      execute('am force-stop com.samsung.android.game.gametools');
-      Utils.sleep(500);
+      // Check for GameBooster Lock Screen
+      if (Utils.isGameBoosterLockScreen()) {
+        console.log('GameBooster Lock Screen detected, attempting to remove gametool process');
+        execute('am force-stop com.samsung.android.game.gametools');
+        Utils.sleep(500);
+      }
     }
 
     const topInfo = execute('dumpsys activity activities | grep mResumedActivity');
