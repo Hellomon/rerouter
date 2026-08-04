@@ -9,6 +9,7 @@ on:
       - package-lock.json
 
 permissions:
+  id-token: write
   contents: write
 
 jobs:
@@ -19,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
           registry-url: https://registry.npmjs.org
 
       - name: Get package version
@@ -45,8 +46,6 @@ jobs:
       - name: Publish to npm
         if: steps.check.outputs.published == 'false'
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create git tag
         if: steps.check.outputs.published == 'false'
