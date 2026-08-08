@@ -292,7 +292,7 @@ export class Rerouter {
 
   /**
    * Tap next. Prefer no-arg call inside route action (uses active match context).
-   * - 1 matched page → that page's next
+   * - 1 matched page → that page's next; if missing, fall back to route match (GroupPage/Page) next
    * - 2+ matched pages → route match (GroupPage/Page) next
    * - With explicit page arg → that page's next (legacy / outside match context)
    */
@@ -325,7 +325,7 @@ export class Rerouter {
     }
 
     if (this.activeMatchedPages.length === 1) {
-      return this.activeMatchedPages[0][kind];
+      return this.activeMatchedPages[0][kind] ?? this.activeMatch?.[kind];
     }
     if (this.activeMatchedPages.length >= 2 && this.activeMatch !== null) {
       return this.activeMatch[kind];
