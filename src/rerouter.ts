@@ -1,4 +1,4 @@
-import { RerouterConfig, RouteConfig, ScreenConfig, TaskConfig, Task, RouteContext, Page, GroupPage, ConfigValue, GameStatus, EventName } from './struct';
+import { RerouterConfig, RouteConfig, ScreenConfig, TaskConfig, Task, RouteContext, Page, GroupPage, ConfigValue, GameStatus, EventName, XY } from './struct';
 import { Screen } from './screen';
 import { Utils } from './utils';
 import { updateGameStatus as xrUpdateGameStatus, sendActivityLog as xrSendActivityLog, sendLog as xrSendLog } from './xr';
@@ -30,6 +30,10 @@ export class Rerouter {
   private globalAfterRouteAction: ((context: RouteContext, image: Image, matched: Page[]) => void) | null = null;
   private globalBeforeTaskAction: ((task: Task) => void | 'skipRouteLoop') | null = null;
   private globalAfterTaskAction: ((task: Task) => void) | null = null;
+
+  /** Current route match context, set while handling a matched route action. */
+  private activeMatch: Page | GroupPage | null = null;
+  private activeMatchedPages: Page[] = [];
 
   private localGameStatus: GameStatus | null = null;
   private cloudGameStatus: GameStatus | null = null;
@@ -286,20 +290,50 @@ export class Rerouter {
     this.startApp();
   }
 
-  public goNext(page: Page | GroupPage): void {
-    if (page.next !== undefined) {
-      this.screen.tap(page.next);
+  /**
+   * Tap next. Prefer no-arg call inside route action (uses active match context).
+   * - 1 matched page → that page's next
+   * - 2+ matched pages → route match (GroupPage/Page) next
+   * - With explicit page arg → that page's next (legacy / outside match context)
+   */
+  public goNext(page?: Page | GroupPage): void {
+    const next = this.resolveActionXY('next', page);
+    if (next !== undefined) {
+      this.screen.tap(next);
     } else {
-      this.warning(`${page.name} action == goNext, but no next xy`);
+      const name = (page && page.name) || (this.activeMatch && this.activeMatch.name) || 'unknown';
+      this.warning(`${name} action == goNext, but no next xy`);
     }
   }
 
-  public goBack(page: Page | GroupPage): void {
-    if (page.back !== undefined) {
-      this.screen.tap(page.back);
+  /**
+   * Tap back. Same resolution rules as goNext.
+   */
+  public goBack(page?: Page | GroupPage): void {
+    const back = this.resolveActionXY('back', page);
+    if (back !== undefined) {
+      this.screen.tap(back);
     } else {
-      this.warning(`${page.name} action == goBack, but no back xy`);
+      const name = (page && page.name) || (this.activeMatch && this.activeMatch.name) || 'unknown';
+      this.warning(`${name} action == goBack, but no back xy`);
     }
+  }
+
+  private resolveActionXY(kind: 'next' | 'back', page?: Page | GroupPage): XY | undefined {
+    if (page !== undefined) {
+      return page[kind];
+    }
+
+    if (this.activeMatchedPages.length === 1) {
+      return this.activeMatchedPages[0][kind];
+    }
+    if (this.activeMatchedPages.length >= 2 && this.activeMatch !== null) {
+      return this.activeMatch[kind];
+    }
+    if (this.activeMatch !== null) {
+      return this.activeMatch[kind];
+    }
+    return undefined;
   }
 
   public isPageMatch(page: Page | GroupPage | string): boolean {
@@ -644,73 +678,71 @@ export class Rerouter {
       return;
     }
 
-    // Execute global beforeRoute callback if defined
-    if (this.globalBeforeRouteAction !== null) {
-      this.logImpl(route.debug, `Global beforeRoute executing for route: ${route.path}`);
-      try {
-        this.globalBeforeRouteAction(context, image, matchedPages);
-      } catch (error) {
-        this.warning(`Global beforeRoute callback error for route: ${route.path}`, error);
-      }
-    }
-
-    // Execute beforeRoute callback if defined
-    if (route.beforeRoute !== null) {
-      this.logImpl(route.debug, `Route: ${route.path} executing beforeRoute callback`);
-      try {
-        route.beforeRoute(context, image, matchedPages);
-      } catch (error) {
-        this.warning(`Route: ${route.path} beforeRoute callback error:`, error);
-      }
-    }
-
-    const nextXY = matchedPages[0]?.next;
-    const backXY = matchedPages[0]?.back;
-    // matched and fit condition, do action
-    Utils.sleep(route.beforeActionDelay);
+    this.activeMatch = route.match instanceof Page || route.match instanceof GroupPage ? route.match : null;
+    this.activeMatchedPages = matchedPages;
 
     try {
-      if (route.action === 'goNext') {
-        if (nextXY !== undefined) {
-          this.screen.tap(nextXY);
-        } else {
-          this.warning(`${route.path} action == goNext, but no next xy`);
+      // Execute global beforeRoute callback if defined
+      if (this.globalBeforeRouteAction !== null) {
+        this.logImpl(route.debug, `Global beforeRoute executing for route: ${route.path}`);
+        try {
+          this.globalBeforeRouteAction(context, image, matchedPages);
+        } catch (error) {
+          this.warning(`Global beforeRoute callback error for route: ${route.path}`, error);
         }
-      } else if (route.action === 'goBack') {
-        if (backXY !== undefined) {
-          this.screen.tap(backXY);
-        } else {
-          this.warning(`${route.path} action == goBack, but no back xy`);
+      }
+
+      // Execute beforeRoute callback if defined
+      if (route.beforeRoute !== null) {
+        this.logImpl(route.debug, `Route: ${route.path} executing beforeRoute callback`);
+        try {
+          route.beforeRoute(context, image, matchedPages);
+        } catch (error) {
+          this.warning(`Route: ${route.path} beforeRoute callback error:`, error);
         }
-      } else if (route.action === 'keycodeBack') {
-        keycode('BACK', this.screenConfig.actionDuring);
-      } else {
-        route.action(context, image, matchedPages, finishRound);
       }
-    } catch (error) {
-      this.warning(`Route: ${route.path} action execution error:`, error);
-    }
 
-    Utils.sleep(route.afterActionDelay);
+      // matched and fit condition, do action
+      Utils.sleep(route.beforeActionDelay);
 
-    // Execute afterRoute callback if defined
-    if (route.afterRoute !== null) {
-      this.logImpl(route.debug, `Route: ${route.path} executing afterRoute callback`);
       try {
-        route.afterRoute(context, image, matchedPages);
+        if (route.action === 'goNext') {
+          this.goNext();
+        } else if (route.action === 'goBack') {
+          this.goBack();
+        } else if (route.action === 'keycodeBack') {
+          keycode('BACK', this.screenConfig.actionDuring);
+        } else {
+          route.action(context, image, matchedPages, finishRound);
+        }
       } catch (error) {
-        this.warning(`Route: ${route.path} afterRoute callback error:`, error);
+        this.warning(`Route: ${route.path} action execution error:`, error);
       }
-    }
 
-    // Execute global afterRoute callback if defined
-    if (this.globalAfterRouteAction !== null) {
-      this.logImpl(route.debug, `Global afterRoute executing for route: ${route.path}`);
-      try {
-        this.globalAfterRouteAction(context, image, matchedPages);
-      } catch (error) {
-        this.warning(`Global afterRoute callback error for route: ${route.path}`, error);
+      Utils.sleep(route.afterActionDelay);
+
+      // Execute afterRoute callback if defined
+      if (route.afterRoute !== null) {
+        this.logImpl(route.debug, `Route: ${route.path} executing afterRoute callback`);
+        try {
+          route.afterRoute(context, image, matchedPages);
+        } catch (error) {
+          this.warning(`Route: ${route.path} afterRoute callback error:`, error);
+        }
       }
+
+      // Execute global afterRoute callback if defined
+      if (this.globalAfterRouteAction !== null) {
+        this.logImpl(route.debug, `Global afterRoute executing for route: ${route.path}`);
+        try {
+          this.globalAfterRouteAction(context, image, matchedPages);
+        } catch (error) {
+          this.warning(`Global afterRoute callback error for route: ${route.path}`, error);
+        }
+      }
+    } finally {
+      this.activeMatch = null;
+      this.activeMatchedPages = [];
     }
   }
 
