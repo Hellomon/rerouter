@@ -953,13 +953,14 @@ export class Rerouter {
   }
 
   public updateGameStatus(status: GameStatus): boolean {
+    if (status === GameStatus.NEW_ACCOUNT) {
+      sendEvent(EventName.RUNNING, '');
+    }
+
     // If instanceId or deviceId is empty, skip updating cloud status
     if (!this.rerouterConfig.instanceId || !this.rerouterConfig.deviceId) {
       console.warn('Instance ID or Device ID is empty. Skipping cloud status update.');
       this.localGameStatus = status;
-      if (status === GameStatus.NEW_ACCOUNT) {
-        sendEvent(EventName.RUNNING, '');
-      }
       return true; // Local update is considered successful
     }
 
@@ -979,9 +980,6 @@ export class Rerouter {
         // Only update local after cloud succeeds, to avoid local/cloud drift
         this.localGameStatus = status;
         this.cloudGameStatus = status;
-        if (status === GameStatus.NEW_ACCOUNT) {
-          sendEvent(EventName.RUNNING, '');
-        }
         return true;
       }
 
