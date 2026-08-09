@@ -953,6 +953,8 @@ export class Rerouter {
   }
 
   public updateGameStatus(status: GameStatus): boolean {
+    this.localGameStatus = status; // Update local status first
+
     if (status === GameStatus.NEW_ACCOUNT) {
       sendEvent(EventName.RUNNING, '');
     }
@@ -960,13 +962,15 @@ export class Rerouter {
     // If instanceId or deviceId is empty, skip updating cloud status
     if (!this.rerouterConfig.instanceId || !this.rerouterConfig.deviceId) {
       console.warn('Instance ID or Device ID is empty. Skipping cloud status update.');
-      this.localGameStatus = status;
       return true; // Local update is considered successful
     }
 
     if (this.cloudGameStatus === status) {
-      // Keep local in sync with known cloud status; no cloud write needed
-      this.localGameStatus = status;
+      return false; // No update is needed if the cloud status hasn't changed
+    }
+
+    if (this.rerouterConfig.deviceId === '' || this.rerouterConfig.instanceId === '') {
+      console.log(`deviceId or instanceId is empty, cannot update game status`);
       return false;
     }
 
@@ -977,10 +981,8 @@ export class Rerouter {
       const result = xrUpdateGameStatus(this.rerouterConfig.deviceId, this.rerouterConfig.instanceId, status);
 
       if (result === true) {
-        // Only update local after cloud succeeds, to avoid local/cloud drift
-        this.localGameStatus = status;
-        this.cloudGameStatus = status;
-        return true;
+        this.cloudGameStatus = status; // Update cloud status on success
+        return true; // Operation successful, return true
       }
 
       attempts++;
@@ -992,7 +994,7 @@ export class Rerouter {
       Utils.sleep(3000); // Sleep between attempts
     }
 
-    return false; // Return false after all attempts failed; local unchanged
+    return false; // Return false after all attempts failed
   }
 
   public getGameStatus(): GameStatus | null {
