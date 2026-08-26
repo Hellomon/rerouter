@@ -56,7 +56,7 @@ export type RouteImageFolderTestOptions = {
   rotation?: 'horizontal' | 'vertical';
   // Enable rerouter debug prints
   debug?: boolean;
-  // Where to write an aggregated error log; set null to disable writing
+  // Where to write an aggregated error log; default /tmp/errorLog.txt, set null to disable writing
   writeErrorLogPath?: string | null;
   // Print per-image progress
   verbose?: boolean;
@@ -68,7 +68,7 @@ export type RouteImageFolderTestOptions = {
  * or when the filename doesn't match the matched page/route.
  */
 export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): void {
-  const { setupRoutes, screenshotsPath, rotation = 'horizontal', debug = false, writeErrorLogPath = 'errorLog.txt', verbose = true } = options;
+  const { setupRoutes, screenshotsPath, rotation = 'horizontal', debug = false, writeErrorLogPath = '/tmp/errorLog.txt', verbose = true } = options;
 
   // Allow tests to re-run cleanly
   rerouter.reset();
