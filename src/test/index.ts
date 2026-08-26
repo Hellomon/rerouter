@@ -64,8 +64,9 @@ export type RouteImageFolderTestOptions = {
 
 /**
  * Run a generic route-image folder test against current routes in rerouter.
- * Shows warnings for images with no matches, and throws errors for conflicting matches
- * or when the filename doesn't match the matched page/route.
+ * Warns when an image has no corresponding route. Throws when a named route exists
+ * but does not match, when matches conflict, or when the filename doesn't match
+ * the matched page/route.
  */
 export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): void {
   const { setupRoutes, screenshotsPath, rotation = 'horizontal', debug = false, writeErrorLogPath = 'errorLog.txt', verbose = true } = options;
@@ -83,6 +84,7 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
 
   const files = fs.readdirSync(screenshotsPath);
   const errorMessages: string[] = [];
+  const warningMessages: string[] = [];
 
   for (const file of files) {
     if (!file.endsWith('.png')) {
@@ -102,12 +104,16 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
     const matches: { matchedRoute: Required<RouteConfig>; matchedPages: Page[] }[] = (rerouter as any).findMatchedRouteImpl('', imageData, rotation);
 
     if (matches.length === 0) {
-      handleNoMatches(file, errorMessages, imageData, verbose);
+      handleNoMatches(file, errorMessages, warningMessages, imageData, verbose);
     } else if (matches.length === 1) {
       handleSingleMatch(file, matches[0], errorMessages, verbose);
     } else if (matches.length > 1) {
       handleMultipleMatches(file, matches, errorMessages, verbose);
     }
+  }
+
+  if (warningMessages.length > 0) {
+    console.warn(`Warnings:\n${warningMessages.join('\n')}`);
   }
 
   // Handle errors
@@ -121,7 +127,7 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   }
 }
 
-function handleNoMatches(file: string, errorMessages: string[], imageData: Image, verbose: boolean) {
+function handleNoMatches(file: string, errorMessages: string[], warningMessages: string[], imageData: Image, verbose: boolean) {
   const fileNameWithoutExtension = path.basename(file, '.png');
   const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
 
@@ -142,6 +148,13 @@ function handleNoMatches(file: string, errorMessages: string[], imageData: Image
       } else if (route.match instanceof GroupPage) {
         expectedPage = route.match.pages.find(page => page.name === fileNameWithOnlyFirstName) || null;
       }
+      break;
+    }
+
+    // Check if this route's Page name matches the filename
+    if (route.match instanceof Page && route.match.name === fileNameWithOnlyFirstName) {
+      expectedPage = route.match;
+      expectedRoutePath = route.path;
       break;
     }
 
@@ -173,9 +186,12 @@ function handleNoMatches(file: string, errorMessages: string[], imageData: Image
         });
       }
     }
+
+    errorMessages.push(message);
+    return;
   }
 
-  errorMessages.push(message);
+  warningMessages.push(message);
 }
 
 function checkPixelDifferences(page: Page, imageData: Image): Array<{ index: number; expected: XYRGB; actual: XYRGB; score: number; thres: number }> {
