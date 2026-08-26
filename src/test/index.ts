@@ -151,13 +151,6 @@ function handleNoMatches(file: string, errorMessages: string[], warningMessages:
       break;
     }
 
-    // Check if this route's Page name matches the filename
-    if (route.match instanceof Page && route.match.name === fileNameWithOnlyFirstName) {
-      expectedPage = route.match;
-      expectedRoutePath = route.path;
-      break;
-    }
-
     // Check if this route has a GroupPage with pages matching the filename
     if (route.match instanceof GroupPage) {
       const matchingPage = route.match.pages.find(page => page.name === fileNameWithOnlyFirstName);
