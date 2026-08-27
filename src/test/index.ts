@@ -64,7 +64,7 @@ export type RouteImageFolderTestOptions = {
 
 /**
  * Run a generic route-image folder test against current routes in rerouter.
- * Skips screenshots marked `.unrouted` when they have no corresponding route.
+ * Skips screenshots whose name ends with `.unrouted.png` when they have no corresponding route.
  * Throws when an unmarked screenshot has no route, when a named route exists
  * but does not match, when matches conflict, or when the filename doesn't match
  * the matched page/route.
@@ -125,12 +125,7 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
 
 function isUnroutedScreenshot(fileNameWithoutExtension: string): boolean {
   const parts = fileNameWithoutExtension.split('.');
-  for (let i = 1; i < parts.length; i++) {
-    if (parts[i] === 'unrouted') {
-      return true;
-    }
-  }
-  return false;
+  return parts.length >= 2 && parts[parts.length - 1] === 'unrouted';
 }
 
 function handleNoMatches(file: string, errorMessages: string[], imageData: Image, verbose: boolean) {
