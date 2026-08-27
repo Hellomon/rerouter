@@ -64,7 +64,7 @@ export type RouteImageFolderTestOptions = {
 
 /**
  * Run a generic route-image folder test against current routes in rerouter.
- * Warns when a screenshot marked `.unrouted` has no corresponding route.
+ * Skips screenshots marked `.unrouted` when they have no corresponding route.
  * Throws when an unmarked screenshot has no route, when a named route exists
  * but does not match, when matches conflict, or when the filename doesn't match
  * the matched page/route.
@@ -85,7 +85,6 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
 
   const files = fs.readdirSync(screenshotsPath);
   const errorMessages: string[] = [];
-  const warningMessages: string[] = [];
 
   for (const file of files) {
     if (!file.endsWith('.png')) {
@@ -105,16 +104,12 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
     const matches: { matchedRoute: Required<RouteConfig>; matchedPages: Page[] }[] = (rerouter as any).findMatchedRouteImpl('', imageData, rotation);
 
     if (matches.length === 0) {
-      handleNoMatches(file, errorMessages, warningMessages, imageData, verbose);
+      handleNoMatches(file, errorMessages, imageData, verbose);
     } else if (matches.length === 1) {
       handleSingleMatch(file, matches[0], errorMessages, verbose);
     } else if (matches.length > 1) {
       handleMultipleMatches(file, matches, errorMessages, verbose);
     }
-  }
-
-  if (warningMessages.length > 0) {
-    console.warn(`Warnings:\n${warningMessages.join('\n')}`);
   }
 
   // Handle errors
@@ -138,7 +133,7 @@ function isUnroutedScreenshot(fileNameWithoutExtension: string): boolean {
   return false;
 }
 
-function handleNoMatches(file: string, errorMessages: string[], warningMessages: string[], imageData: Image, verbose: boolean) {
+function handleNoMatches(file: string, errorMessages: string[], imageData: Image, verbose: boolean) {
   const fileNameWithoutExtension = path.basename(file, '.png');
   const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
   const markedUnrouted = isUnroutedScreenshot(fileNameWithoutExtension);
@@ -197,7 +192,9 @@ function handleNoMatches(file: string, errorMessages: string[], warningMessages:
   }
 
   if (markedUnrouted) {
-    warningMessages.push(message);
+    if (verbose) {
+      console.log(`Skipping unrouted screenshot: ${file}`);
+    }
     return;
   }
 
