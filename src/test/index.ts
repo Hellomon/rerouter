@@ -64,7 +64,8 @@ export type RouteImageFolderTestOptions = {
 
 /**
  * Run a generic route-image folder test against current routes in rerouter.
- * Warns when an image has no corresponding route. Throws when a named route exists
+ * Warns when a screenshot marked `.unrouted` has no corresponding route.
+ * Throws when an unmarked screenshot has no route, when a named route exists
  * but does not match, when matches conflict, or when the filename doesn't match
  * the matched page/route.
  */
@@ -127,9 +128,20 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   }
 }
 
+function isUnroutedScreenshot(fileNameWithoutExtension: string): boolean {
+  const parts = fileNameWithoutExtension.split('.');
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i] === 'unrouted') {
+      return true;
+    }
+  }
+  return false;
+}
+
 function handleNoMatches(file: string, errorMessages: string[], warningMessages: string[], imageData: Image, verbose: boolean) {
   const fileNameWithoutExtension = path.basename(file, '.png');
   const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
+  const markedUnrouted = isUnroutedScreenshot(fileNameWithoutExtension);
 
   // Get all available routes to find expected match
   const availableRoutes = rerouter.getRoutes();
@@ -184,7 +196,12 @@ function handleNoMatches(file: string, errorMessages: string[], warningMessages:
     return;
   }
 
-  warningMessages.push(message);
+  if (markedUnrouted) {
+    warningMessages.push(message);
+    return;
+  }
+
+  errorMessages.push(message);
 }
 
 function checkPixelDifferences(page: Page, imageData: Image): Array<{ index: number; expected: XYRGB; actual: XYRGB; score: number; thres: number }> {
