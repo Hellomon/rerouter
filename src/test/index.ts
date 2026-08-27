@@ -64,8 +64,10 @@ export type RouteImageFolderTestOptions = {
 
 /**
  * Run a generic route-image folder test against current routes in rerouter.
- * Shows warnings for images with no matches, and throws errors for conflicting matches
- * or when the filename doesn't match the matched page/route.
+ * Skips screenshots whose name ends with `.unrouted.png` when they have no corresponding route.
+ * Throws when an unmarked screenshot has no route, when a named route exists
+ * but does not match, when matches conflict, or when the filename doesn't match
+ * the matched page/route.
  */
 export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): void {
   const { setupRoutes, screenshotsPath, rotation = 'horizontal', debug = false, writeErrorLogPath = '/tmp/errorLog.txt', verbose = true } = options;
@@ -121,9 +123,15 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
   }
 }
 
+function isUnroutedScreenshot(fileNameWithoutExtension: string): boolean {
+  const parts = fileNameWithoutExtension.split('.');
+  return parts.length >= 2 && parts[parts.length - 1] === 'unrouted';
+}
+
 function handleNoMatches(file: string, errorMessages: string[], imageData: Image, verbose: boolean) {
   const fileNameWithoutExtension = path.basename(file, '.png');
   const fileNameWithOnlyFirstName = fileNameWithoutExtension.split('.')[0];
+  const markedUnrouted = isUnroutedScreenshot(fileNameWithoutExtension);
 
   // Get all available routes to find expected match
   const availableRoutes = rerouter.getRoutes();
@@ -173,6 +181,16 @@ function handleNoMatches(file: string, errorMessages: string[], imageData: Image
         });
       }
     }
+
+    errorMessages.push(message);
+    return;
+  }
+
+  if (markedUnrouted) {
+    if (verbose) {
+      console.log(`Skipping unrouted screenshot: ${file}`);
+    }
+    return;
   }
 
   errorMessages.push(message);
