@@ -3,7 +3,7 @@ import { Screen } from './screen';
 import { Utils } from './utils';
 import { updateGameStatus as xrUpdateGameStatus, sendActivityLog as xrSendActivityLog, sendLog as xrSendLog } from './xr';
 
-import { overrideConsole, isLogEnabled } from './overrides';
+import { overrideConsole } from './overrides';
 import { DEFAULT_REROUTER_CONFIG, DEFAULT_SCREEN_CONFIG, DEFAULT_CONFIG_VALUE, defaultHandleConflictRoutes } from './defaults';
 
 import 'core-js/es/object/assign';
@@ -897,13 +897,11 @@ export class Rerouter {
       const isPointColorMatch = score >= thres === shouldMatch;
       if (!isPointColorMatch) {
         isSame = false;
-        if (isLogEnabled('DEBUG')) {
-          console.debug(
-            `point[${i}] match false: score: ${score}, thres: ${thres}\n`,
-            `expect: ${Utils.formatXYRGB(point)}\n`,
-            `   get: ${Utils.formatXYRGB({ ...color, x: point.x, y: point.y })}`
-          );
-        }
+        console.debug(
+          `point[${i}] match false: score: ${score}, thres: ${thres}\n`,
+          `expect: ${Utils.formatXYRGB(point)}\n`,
+          `   get: ${Utils.formatXYRGB({ ...color, x: point.x, y: point.y })}`
+        );
       }
     }
 

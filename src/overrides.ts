@@ -113,10 +113,6 @@ export const overrideConsole: typeof originConsole & {
   log: logFactory('INFO', 'grey'),
 };
 
-export function isLogEnabled(level: LogLevel): boolean {
-  return isEnable(level);
-}
-
 function createShadowMethod(self: Console, method: Function) {
   return (...args: Parameters<typeof console.log>) => {
     method.apply(self, args);
