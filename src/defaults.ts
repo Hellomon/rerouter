@@ -13,7 +13,7 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   checkFrozenScreen: true,
   debugSlackUrl: '',
   logger: {
-    overrideGlobalConsole: false,
+    overrideGlobalConsole: true,
     timezoneOffsetHour: 8,
     logLevel: 'INFO',
   },

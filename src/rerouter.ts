@@ -62,7 +62,14 @@ export class Rerouter {
   /**
    * Recalculate some value like device width or height in screenConfig
    */
+  private applyLogger(): void {
+    overrideConsole.setLogLevel(this.rerouterConfig.logger.logLevel);
+    overrideConsole.setTimezoneOffsetHour(this.rerouterConfig.logger.timezoneOffsetHour);
+    overrideConsole.doOverrideGlobalConsole(this.rerouterConfig.logger.overrideGlobalConsole);
+  }
+
   private init(): void {
+    this.applyLogger();
     // sort routes by priority
     this.routes.sort((a, b) => b.priority - a.priority);
     // check and calculate screen config
@@ -75,12 +82,8 @@ export class Rerouter {
     this.screenConfig.deviceHeight = this.screenConfig.deviceHeight || dHeight;
     this.screenConfig.screenWidth = this.screenConfig.screenWidth || dWidth;
     this.screenConfig.screenHeight = this.screenConfig.screenHeight || dHeight;
-    overrideConsole.debug(`screenWidth: ${this.screenConfig.screenWidth}, screenHeight: ${this.screenConfig.screenHeight}`);
+    console.debug(`screenWidth: ${this.screenConfig.screenWidth}, screenHeight: ${this.screenConfig.screenHeight}`);
     (this.screenConfig as any).logScreenshotFolder = this.rerouterConfig.deviceId; // Type assertion to bypass readonly restriction
-
-    overrideConsole.setLogLevel(this.rerouterConfig.logger.logLevel);
-    overrideConsole.setTimezoneOffsetHour(this.rerouterConfig.logger.timezoneOffsetHour);
-    overrideConsole.doOverrideGlobalConsole(this.rerouterConfig.logger.overrideGlobalConsole);
 
     // new screen if screen config changed
     this.screen = new Screen(this.screenConfig);
@@ -91,12 +94,13 @@ export class Rerouter {
    * @param config information about how route match and route action
    */
   public addRoute(config: RouteConfig): void {
+    this.applyLogger();
     // @ts-ignore included 'core-js/es/array/find-index'
     const existingRouteIndex = this.routes.findIndex(route => route.path === config.path);
 
     // If it exists, log a warning and decide what to do next
     if (existingRouteIndex !== -1) {
-      overrideConsole.warn(`A route with the path '${config.path}' already exists. Duplicate route will not be added.`);
+      console.warn(`A route with the path '${config.path}' already exists. Duplicate route will not be added.`);
 
       // Option 1: Update the existing route with the new configuration
       // this.routes[existingRouteIndex] = this.wrapRouteConfigWithDefault(config);
@@ -170,10 +174,11 @@ export class Rerouter {
    * @param config information about how task works
    */
   public addTask(config: TaskConfig): void {
+    this.applyLogger();
     // Check if a task with the same name already exists
     for (let i = 0; i < this.tasks.length; i++) {
       if (this.tasks[i].name === config.name) {
-        overrideConsole.warn(`A task with the name '${config.name}' already exists. Duplicate task will not be added.`);
+        console.warn(`A task with the name '${config.name}' already exists. Duplicate task will not be added.`);
         return;
       }
     }
@@ -193,25 +198,26 @@ export class Rerouter {
    */
   public start(packageName: string): void {
     this.rerouterConfig.packageName = packageName;
+    this.applyLogger();
     // check tasks
     if (this.tasks.length === 0) {
-      overrideConsole.warn(`Rerouter start failed, no tasks ...`);
+      console.warn(`Rerouter start failed, no tasks ...`);
       return;
     }
 
     this.init();
-    overrideConsole.info(`Rerouter started ...`);
+    console.info(`Rerouter started ...`);
     // task controller
     this.running = true;
     this.startTaskLoop();
-    overrideConsole.info(`Rerouter stopped ...`);
+    console.info(`Rerouter stopped ...`);
   }
 
   /**
    * stop Rerouter
    */
   public stop(): void {
-    overrideConsole.info(`Rerouter stop called, trying to stop task loop`);
+    console.info(`Rerouter stop called, trying to stop task loop`);
     this.running = false;
     if (this.routeContext !== null) {
       this.routeContext.scriptRunning = false;
@@ -229,10 +235,10 @@ export class Rerouter {
   }
 
   public startApp(maxRetries: number = 3, retryDelay: number = 3000): void {
-    overrideConsole.info('startApp: start');
+    console.info('startApp: start');
 
     if (!this.rerouterConfig.packageName) {
-      overrideConsole.warn(`Rerouter start app failed, no packageName ...`);
+      console.warn(`Rerouter start app failed, no packageName ...`);
       return;
     }
 
@@ -247,17 +253,17 @@ export class Rerouter {
       attempts++;
 
       if (infiniteRetry && attempts > 0 && attempts % 5 === 0) {
-        overrideConsole.debug(`startApp: still trying after ${attempts} attempts...`);
+        console.debug(`startApp: still trying after ${attempts} attempts...`);
       }
     }
 
-    overrideConsole.info('startApp: done');
+    console.info('startApp: done');
   }
   public stopApp(maxRetries: number = 3, retryDelay: number = 3000): void {
-    overrideConsole.info('stopApp: start');
+    console.info('stopApp: start');
 
     if (!this.rerouterConfig.packageName) {
-      overrideConsole.warn(`Rerouter stop app failed, no packageName ...`);
+      console.warn(`Rerouter stop app failed, no packageName ...`);
       return;
     }
 
@@ -272,11 +278,11 @@ export class Rerouter {
       attempts++;
 
       if (infiniteRetry && attempts > 0 && attempts % 5 === 0) {
-        overrideConsole.debug(`stopApp: still trying after ${attempts} attempts...`);
+        console.debug(`stopApp: still trying after ${attempts} attempts...`);
       }
     }
 
-    overrideConsole.info('stopApp: done');
+    console.info('stopApp: done');
   }
 
   public stopEmulator(): void {
@@ -300,7 +306,7 @@ export class Rerouter {
       this.screen.tap(next);
     } else {
       const name = (page && page.name) || (this.activeMatch && this.activeMatch.name) || 'unknown';
-      overrideConsole.warn(`${name} action == goNext, but no next xy`);
+      console.warn(`${name} action == goNext, but no next xy`);
     }
   }
 
@@ -313,7 +319,7 @@ export class Rerouter {
       this.screen.tap(back);
     } else {
       const name = (page && page.name) || (this.activeMatch && this.activeMatch.name) || 'unknown';
-      overrideConsole.warn(`${name} action == goBack, but no back xy`);
+      console.warn(`${name} action == goBack, but no back xy`);
     }
   }
 
@@ -345,7 +351,7 @@ export class Rerouter {
     if (typeof page === 'string') {
       const p = this.getPageByName(page);
       if (p === null) {
-        overrideConsole.warn(`isPageMatchImage ${page} not exist`);
+        console.warn(`isPageMatchImage ${page} not exist`);
         return false;
       }
       page = p;
@@ -394,7 +400,7 @@ export class Rerouter {
   public isRouteMatchImage(route: RouteConfig | string, image: Image): boolean {
     const routeConfig = this.getRouteConfig(route);
     if (routeConfig === null) {
-      overrideConsole.warn(`isRouteMatchImage ${route} not exist`);
+      console.warn(`isRouteMatchImage ${route} not exist`);
       return false;
     }
     const filledRouteConfig = this.wrapRouteConfigWithDefault(routeConfig);
@@ -440,7 +446,7 @@ export class Rerouter {
         matchedNames.push(match.name);
       }
     });
-    overrideConsole.debug(`current match: `, matchedNames);
+    console.debug(`current match: `, matchedNames);
     releaseImage(image);
     return matchedNames;
   }
@@ -493,7 +499,7 @@ export class Rerouter {
       const now = Date.now();
       const isTaskRunFirstTime = task.lastRunTime === 0;
       if (now - task.lastRunTime <= task.config.minRoundInterval && !isTaskRunFirstTime) {
-        overrideConsole.debug(`Task: ${task.name} during: ${now - task.lastRunTime} <= minRoundInterval, skip`);
+        console.debug(`Task: ${task.name} during: ${now - task.lastRunTime} <= minRoundInterval, skip`);
         Utils.sleep(this.rerouterConfig.taskDelay);
         continue;
       }
@@ -505,34 +511,34 @@ export class Rerouter {
       // Execute global beforeTask callback if defined
       let globalSkipRoute = false;
       if (this.globalBeforeTaskAction !== null) {
-        overrideConsole.debug(`Global beforeTask executing for task: ${task.name}`);
+        console.debug(`Global beforeTask executing for task: ${task.name}`);
         try {
           if (this.globalBeforeTaskAction(task) === 'skipRouteLoop') {
             globalSkipRoute = true;
           }
         } catch (error) {
-          overrideConsole.warn(`Global beforeTask callback error for task: ${task.name}`, error);
+          console.warn(`Global beforeTask callback error for task: ${task.name}`, error);
         }
       }
 
       for (let i = 0; i < task.config.maxTaskRunTimes && this.running && !exitTask; i++) {
-        overrideConsole.info(`Task: ${task.name} run ${task.runTimes}`);
+        console.info(`Task: ${task.name} run ${task.runTimes}`);
         let skipRoute = globalSkipRoute;
         if (task.config.beforeTask !== null) {
-          overrideConsole.debug(`Task: ${task.name} run ${task.runTimes} do beforeTask()`);
+          console.debug(`Task: ${task.name} run ${task.runTimes} do beforeTask()`);
           if (task.config.beforeTask(task) === 'skipRouteLoop') {
             skipRoute = true;
           }
         }
 
         if (skipRoute) {
-          overrideConsole.info(`Task: ${task.name} run ${task.runTimes} skipRouteLoop`);
+          console.info(`Task: ${task.name} run ${task.runTimes} skipRouteLoop`);
         } else {
           exitTask = this.startRouteLoop(task);
         }
 
         if (task.config.afterTask !== null) {
-          overrideConsole.debug(`Task: ${task.name} run ${task.runTimes} do afterTask()`);
+          console.debug(`Task: ${task.name} run ${task.runTimes} do afterTask()`);
           task.config.afterTask(task);
         }
 
@@ -540,18 +546,18 @@ export class Rerouter {
         task.lastRunTime = now;
         const during = now - task.startTime;
         if (task.config.maxTaskDuring > 0 && during >= task.config.maxTaskDuring) {
-          overrideConsole.info(`Task: ${task.name} taskDuring: ${during}/${task.config.maxTaskDuring} reached, stop`);
+          console.info(`Task: ${task.name} taskDuring: ${during}/${task.config.maxTaskDuring} reached, stop`);
           break;
         }
       }
 
       // Execute global afterTask callback if defined
       if (this.globalAfterTaskAction !== null) {
-        overrideConsole.debug(`Global afterTask executing for task: ${task.name}`);
+        console.debug(`Global afterTask executing for task: ${task.name}`);
         try {
           this.globalAfterTaskAction(task);
         } catch (error) {
-          overrideConsole.warn(`Global afterTask callback error for task: ${task.name}`, error);
+          console.warn(`Global afterTask callback error for task: ${task.name}`, error);
         }
       }
 
@@ -576,7 +582,7 @@ export class Rerouter {
     const finishRoundFunc = (exitTask: boolean = false) => {
       routeLoop = false;
       exitTaskResult = exitTask;
-      overrideConsole.info(`finish round: ${this.routeContext?.task.name}; exitTask: ${exitTask}`);
+      console.info(`finish round: ${this.routeContext?.task.name}; exitTask: ${exitTask}`);
     };
     // pointer for short code
     const context = this.routeContext;
@@ -590,14 +596,14 @@ export class Rerouter {
       // check task.autoStop
       const taskRunDuring = now - task.startTime;
       if (task.config.forceStop && taskRunDuring > task.config.maxTaskDuring && task.config.maxTaskDuring > 0) {
-        overrideConsole.info(`Task ${task.name} AutoStop, exceed taskRunDuring`);
+        console.info(`Task ${task.name} AutoStop, exceed taskRunDuring`);
         break;
       }
 
       // check isAppOn or auto launch it
       if (this.rerouterConfig.autoLaunchApp) {
         if (!this.checkInApp()) {
-          overrideConsole.info(`AppIsNotStarted, startApp ${this.rerouterConfig.packageName}`);
+          console.info(`AppIsNotStarted, startApp ${this.rerouterConfig.packageName}`);
 
           // Execute before start app action
           if (this.beforeStartAppRouteAction !== null) {
@@ -668,7 +674,7 @@ export class Rerouter {
 
   private doActionForRoute(context: RouteContext, image: Image, route: Required<RouteConfig>, matchedPages: Page[], finishRound: (exitTask?: boolean) => void) {
     const pageNames = matchedPages.map(page => page.name).join(', ');
-    overrideConsole.info(
+    console.info(
       `handleMatchedRoute: ${route.path}, task: ${context.task.name}, pages: [${pageNames}], times: ${context.matchTimes}, during: ${context.matchDuring}`
     );
     if (context.matchTimes < route.shouldMatchTimes || context.matchDuring < route.shouldMatchDuring) {
@@ -682,21 +688,21 @@ export class Rerouter {
     try {
       // Execute global beforeRoute callback if defined
       if (this.globalBeforeRouteAction !== null) {
-        overrideConsole.debug(`Global beforeRoute executing for route: ${route.path}`);
+        console.debug(`Global beforeRoute executing for route: ${route.path}`);
         try {
           this.globalBeforeRouteAction(context, image, matchedPages);
         } catch (error) {
-          overrideConsole.warn(`Global beforeRoute callback error for route: ${route.path}`, error);
+          console.warn(`Global beforeRoute callback error for route: ${route.path}`, error);
         }
       }
 
       // Execute beforeRoute callback if defined
       if (route.beforeRoute !== null) {
-        overrideConsole.debug(`Route: ${route.path} executing beforeRoute callback`);
+        console.debug(`Route: ${route.path} executing beforeRoute callback`);
         try {
           route.beforeRoute(context, image, matchedPages);
         } catch (error) {
-          overrideConsole.warn(`Route: ${route.path} beforeRoute callback error:`, error);
+          console.warn(`Route: ${route.path} beforeRoute callback error:`, error);
         }
       }
 
@@ -714,28 +720,28 @@ export class Rerouter {
           route.action(context, image, matchedPages, finishRound);
         }
       } catch (error) {
-        overrideConsole.warn(`Route: ${route.path} action execution error:`, error);
+        console.warn(`Route: ${route.path} action execution error:`, error);
       }
 
       Utils.sleep(route.afterActionDelay);
 
       // Execute afterRoute callback if defined
       if (route.afterRoute !== null) {
-        overrideConsole.debug(`Route: ${route.path} executing afterRoute callback`);
+        console.debug(`Route: ${route.path} executing afterRoute callback`);
         try {
           route.afterRoute(context, image, matchedPages);
         } catch (error) {
-          overrideConsole.warn(`Route: ${route.path} afterRoute callback error:`, error);
+          console.warn(`Route: ${route.path} afterRoute callback error:`, error);
         }
       }
 
       // Execute global afterRoute callback if defined
       if (this.globalAfterRouteAction !== null) {
-        overrideConsole.debug(`Global afterRoute executing for route: ${route.path}`);
+        console.debug(`Global afterRoute executing for route: ${route.path}`);
         try {
           this.globalAfterRouteAction(context, image, matchedPages);
         } catch (error) {
-          overrideConsole.warn(`Global afterRoute callback error for route: ${route.path}`, error);
+          console.warn(`Global afterRoute callback error for route: ${route.path}`, error);
         }
       }
     } finally {
@@ -768,7 +774,7 @@ export class Rerouter {
       const { isMatched, matchedPages } = this.isMatchRouteImpl(image, rotation, route, taskName);
       if (isMatched) {
         if (isLogEnabled('DEBUG')) {
-          overrideConsole.debug(
+          console.debug(
             'current match:',
             matchedPages.map(p => p.name)
           );
@@ -803,7 +809,7 @@ export class Rerouter {
       .join('\n');
 
     const warningMsg = `a route conflict when in Task: "${taskName}", details: \n${matchDetails}`;
-    overrideConsole.warn(warningMsg);
+    console.warn(warningMsg);
 
     if (this.rerouterConfig.debugSlackUrl !== '') {
       Utils.sendSlackMessage(this.rerouterConfig.debugSlackUrl, 'Conflict Routes Report', `${DEFAULT_REROUTER_CONFIG.deviceId} just logged ${warningMsg}`);
@@ -849,7 +855,7 @@ export class Rerouter {
     // check rotation
     if (route.rotation !== rotation) {
       if (isLogEnabled('DEBUG')) {
-        overrideConsole.debug(`findMatchedRoute ${route.path} not match rotation, skip`);
+        console.debug(`findMatchedRoute ${route.path} not match rotation, skip`);
       }
       return { isMatched: false, matchedPages: [] };
     }
@@ -875,11 +881,11 @@ export class Rerouter {
     if (!isMatched && route.customMatch !== null) {
       isMatched = route.customMatch(taskName, image);
       if (isLogEnabled('DEBUG')) {
-        overrideConsole.debug(`findMatchedRoute ${route.path} isMatch() => ${isMatched}`);
+        console.debug(`findMatchedRoute ${route.path} isMatch() => ${isMatched}`);
       }
     }
     if (isLogEnabled('DEBUG')) {
-      overrideConsole.debug(`findMatchedRoute ${route.path} match: ${isMatched}, firstPage: ${matchedPages[0]?.name}`);
+      console.debug(`findMatchedRoute ${route.path} match: ${isMatched}, firstPage: ${matchedPages[0]?.name}`);
     }
 
     return {
@@ -893,7 +899,7 @@ export class Rerouter {
     let isSame = true;
     const debugMatch = isLogEnabled('DEBUG');
     if (debugMatch) {
-      overrideConsole.debug(`checkMatchPage[${page.name}]`);
+      console.debug(`checkMatchPage[${page.name}]`);
     }
 
     for (let i = 0; isSame && i < page.points.length; i++) {
@@ -906,7 +912,7 @@ export class Rerouter {
       if (!isPointColorMatch) {
         isSame = false;
         if (debugMatch) {
-          overrideConsole.debug(
+          console.debug(
             `point[${i}] match false: score: ${score}, thres: ${thres}\n`,
             `expect: ${Utils.formatXYRGB(point)}\n`,
             `   get: ${Utils.formatXYRGB({ ...color, x: point.x, y: point.y })}`
@@ -916,7 +922,7 @@ export class Rerouter {
     }
 
     if (debugMatch) {
-      overrideConsole.debug(`checkMatchPage[${page.name}][match: ${isSame}]`);
+      console.debug(`checkMatchPage[${page.name}][match: ${isSame}]`);
     }
     return isSame;
   }
@@ -930,7 +936,7 @@ export class Rerouter {
       const page = groupPage.pages[i];
       const isPageMatch = this.isMatchPageImpl(image, page, thres);
       if (isLogEnabled('DEBUG')) {
-        overrideConsole.debug(`checkMatchGroupPage: ${groupPage.name}, page[${i}]: ${page.name} match: ${isPageMatch}`);
+        console.debug(`checkMatchGroupPage: ${groupPage.name}, page[${i}]: ${page.name} match: ${isPageMatch}`);
       }
 
       if (isPageMatch) {
@@ -968,7 +974,7 @@ export class Rerouter {
     }
 
     if (this.rerouterConfig.deviceId === '' || this.rerouterConfig.instanceId === '') {
-      overrideConsole.warn(`deviceId or instanceId is empty, cannot update game status`);
+      console.warn(`deviceId or instanceId is empty, cannot update game status`);
       return false;
     }
 
@@ -1041,10 +1047,10 @@ export class Rerouter {
 
     const currentImage = this.screen.getCvtDevScreenshot();
     const score = getIdentityScore(currentImage, this.lastScreenshotImage);
-    overrideConsole.debug(`checkScreenFrozen: score: ${score}`);
+    console.debug(`checkScreenFrozen: score: ${score}`);
     if (score > 0.999) {
       this.screenFrozenTimes++;
-      overrideConsole.info(`Screen is frozen, times ${this.screenFrozenTimes}`);
+      console.info(`Screen is frozen, times ${this.screenFrozenTimes}`);
     } else {
       this.screenFrozenTimes = 0;
     }
@@ -1052,7 +1058,7 @@ export class Rerouter {
     this.lastScreenshotImage = currentImage;
 
     if (this.screenFrozenTimes >= 10) {
-      overrideConsole.warn(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
+      console.warn(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
       releaseImage(this.lastScreenshotImage);
       this.sendLog('Rerouter', 'info', 'ScreenFrozen', 'Screen is frozen for more than 10 times (minutes), restarting emulator...');
       this.stopEmulator();
