@@ -9,10 +9,8 @@ import { DEFAULT_REROUTER_CONFIG, DEFAULT_SCREEN_CONFIG, DEFAULT_CONFIG_VALUE, d
 import 'core-js/es/object/assign';
 import 'core-js/es/array/find-index';
 
-// FIXME: clean up log related logic
 // singleton class
 export class Rerouter {
-  public debug: boolean = true;
   public defaultConfig: ConfigValue = DEFAULT_CONFIG_VALUE;
   public rerouterConfig: RerouterConfig = DEFAULT_REROUTER_CONFIG;
   public screenConfig: ScreenConfig = DEFAULT_SCREEN_CONFIG;
@@ -64,6 +62,12 @@ export class Rerouter {
   /**
    * Recalculate some value like device width or height in screenConfig
    */
+  private applyLogger(): void {
+    overrideConsole.setLogLevel(this.rerouterConfig.logger.logLevel);
+    overrideConsole.setTimezoneOffsetHour(this.rerouterConfig.logger.timezoneOffsetHour);
+    overrideConsole.doOverrideGlobalConsole(this.rerouterConfig.logger.overrideGlobalConsole);
+  }
+
   private init(): void {
     // sort routes by priority
     this.routes.sort((a, b) => b.priority - a.priority);
@@ -77,12 +81,8 @@ export class Rerouter {
     this.screenConfig.deviceHeight = this.screenConfig.deviceHeight || dHeight;
     this.screenConfig.screenWidth = this.screenConfig.screenWidth || dWidth;
     this.screenConfig.screenHeight = this.screenConfig.screenHeight || dHeight;
-    this.log(`screenWidth: ${this.screenConfig.screenWidth}, screenHeight: ${this.screenConfig.screenHeight}`);
+    console.debug(`screenWidth: ${this.screenConfig.screenWidth}, screenHeight: ${this.screenConfig.screenHeight}`);
     (this.screenConfig as any).logScreenshotFolder = this.rerouterConfig.deviceId; // Type assertion to bypass readonly restriction
-
-    overrideConsole.setLogLevel(this.rerouterConfig.logger.logLevel);
-    overrideConsole.setTimezoneOffsetHour(this.rerouterConfig.logger.timezoneOffsetHour);
-    overrideConsole.doOverrideGlobalConsole(this.rerouterConfig.logger.overrideGlobalConsole);
 
     // new screen if screen config changed
     this.screen = new Screen(this.screenConfig);
@@ -98,7 +98,7 @@ export class Rerouter {
 
     // If it exists, log a warning and decide what to do next
     if (existingRouteIndex !== -1) {
-      this.warning(`A route with the path '${config.path}' already exists. Duplicate route will not be added.`);
+      console.warn(`A route with the path '${config.path}' already exists. Duplicate route will not be added.`);
 
       // Option 1: Update the existing route with the new configuration
       // this.routes[existingRouteIndex] = this.wrapRouteConfigWithDefault(config);
@@ -175,7 +175,7 @@ export class Rerouter {
     // Check if a task with the same name already exists
     for (let i = 0; i < this.tasks.length; i++) {
       if (this.tasks[i].name === config.name) {
-        this.warning(`A task with the name '${config.name}' already exists. Duplicate task will not be added.`);
+        console.warn(`A task with the name '${config.name}' already exists. Duplicate task will not be added.`);
         return;
       }
     }
@@ -195,25 +195,26 @@ export class Rerouter {
    */
   public start(packageName: string): void {
     this.rerouterConfig.packageName = packageName;
+    this.applyLogger();
     // check tasks
     if (this.tasks.length === 0) {
-      this.log(`Rerouter start failed, no tasks ...`);
+      console.warn(`Rerouter start failed, no tasks ...`);
       return;
     }
 
     this.init();
-    this.log(`Rerouter started ...`);
+    console.info(`Rerouter started ...`);
     // task controller
     this.running = true;
     this.startTaskLoop();
-    this.log(`Rerouter stopped ...`);
+    console.info(`Rerouter stopped ...`);
   }
 
   /**
    * stop Rerouter
    */
   public stop(): void {
-    this.log(`Rerouter stop called, trying to stop task loop`);
+    console.info(`Rerouter stop called, trying to stop task loop`);
     this.running = false;
     if (this.routeContext !== null) {
       this.routeContext.scriptRunning = false;
@@ -231,10 +232,10 @@ export class Rerouter {
   }
 
   public startApp(maxRetries: number = 3, retryDelay: number = 3000): void {
-    this.log('startApp: start');
+    console.info('startApp: start');
 
     if (!this.rerouterConfig.packageName) {
-      this.log(`Rerouter start app failed, no packageName ...`);
+      console.warn(`Rerouter start app failed, no packageName ...`);
       return;
     }
 
@@ -249,17 +250,17 @@ export class Rerouter {
       attempts++;
 
       if (infiniteRetry && attempts > 0 && attempts % 5 === 0) {
-        this.log(`startApp: still trying after ${attempts} attempts...`);
+        console.debug(`startApp: still trying after ${attempts} attempts...`);
       }
     }
 
-    this.log('startApp: done');
+    console.info('startApp: done');
   }
   public stopApp(maxRetries: number = 3, retryDelay: number = 3000): void {
-    this.log('stopApp: start');
+    console.info('stopApp: start');
 
     if (!this.rerouterConfig.packageName) {
-      this.log(`Rerouter stop app failed, no packageName ...`);
+      console.warn(`Rerouter stop app failed, no packageName ...`);
       return;
     }
 
@@ -274,11 +275,11 @@ export class Rerouter {
       attempts++;
 
       if (infiniteRetry && attempts > 0 && attempts % 5 === 0) {
-        this.log(`stopApp: still trying after ${attempts} attempts...`);
+        console.debug(`stopApp: still trying after ${attempts} attempts...`);
       }
     }
 
-    this.log('stopApp: done');
+    console.info('stopApp: done');
   }
 
   public stopEmulator(): void {
@@ -302,7 +303,7 @@ export class Rerouter {
       this.screen.tap(next);
     } else {
       const name = (page && page.name) || (this.activeMatch && this.activeMatch.name) || 'unknown';
-      this.warning(`${name} action == goNext, but no next xy`);
+      console.warn(`${name} action == goNext, but no next xy`);
     }
   }
 
@@ -315,7 +316,7 @@ export class Rerouter {
       this.screen.tap(back);
     } else {
       const name = (page && page.name) || (this.activeMatch && this.activeMatch.name) || 'unknown';
-      this.warning(`${name} action == goBack, but no back xy`);
+      console.warn(`${name} action == goBack, but no back xy`);
     }
   }
 
@@ -347,15 +348,15 @@ export class Rerouter {
     if (typeof page === 'string') {
       const p = this.getPageByName(page);
       if (p === null) {
-        this.warning(`isPageMatchImage ${page} not exist`);
+        console.warn(`isPageMatchImage ${page} not exist`);
         return false;
       }
       page = p;
     }
     if (page instanceof Page) {
-      return this.isMatchPageImpl(image, page, this.defaultConfig.PageThres, this.debug);
+      return this.isMatchPageImpl(image, page, this.defaultConfig.PageThres);
     } else {
-      const pages = this.isMatchGroupPageImpl(image, page, this.defaultConfig.GroupPageThres, this.debug);
+      const pages = this.isMatchGroupPageImpl(image, page, this.defaultConfig.GroupPageThres);
       return pages.length > 0;
     }
   }
@@ -373,7 +374,7 @@ export class Rerouter {
 
     for (let i = 0; i < groupPage.pages.length; i++) {
       const page = groupPage.pages[i];
-      const isPageMatch = this.isMatchPageImpl(image, page, thres, this.debug);
+      const isPageMatch = this.isMatchPageImpl(image, page, thres);
 
       if (isPageMatch) {
         pages.push(page);
@@ -396,7 +397,7 @@ export class Rerouter {
   public isRouteMatchImage(route: RouteConfig | string, image: Image): boolean {
     const routeConfig = this.getRouteConfig(route);
     if (routeConfig === null) {
-      this.warning(`isRouteMatchImage ${route} not exist`);
+      console.warn(`isRouteMatchImage ${route} not exist`);
       return false;
     }
     const filledRouteConfig = this.wrapRouteConfigWithDefault(routeConfig);
@@ -436,13 +437,13 @@ export class Rerouter {
     this.routes.forEach(route => {
       const match = route.match;
       if (
-        (match instanceof Page && this.isMatchPageImpl(image, match, this.defaultConfig.PageThres, this.debug)) ||
-        (match instanceof GroupPage && this.isMatchGroupPageImpl(image, match, this.defaultConfig.PageThres, this.debug).length > 0)
+        (match instanceof Page && this.isMatchPageImpl(image, match, this.defaultConfig.PageThres)) ||
+        (match instanceof GroupPage && this.isMatchGroupPageImpl(image, match, this.defaultConfig.PageThres).length > 0)
       ) {
         matchedNames.push(match.name);
       }
     });
-    this.log(`current match: `, matchedNames);
+    console.debug(`current match: `, matchedNames);
     releaseImage(image);
     return matchedNames;
   }
@@ -495,7 +496,7 @@ export class Rerouter {
       const now = Date.now();
       const isTaskRunFirstTime = task.lastRunTime === 0;
       if (now - task.lastRunTime <= task.config.minRoundInterval && !isTaskRunFirstTime) {
-        this.log(`Task: ${task.name} during: ${now - task.lastRunTime} <= minRoundInterval, skip`);
+        console.debug(`Task: ${task.name} during: ${now - task.lastRunTime} <= minRoundInterval, skip`);
         Utils.sleep(this.rerouterConfig.taskDelay);
         continue;
       }
@@ -507,34 +508,34 @@ export class Rerouter {
       // Execute global beforeTask callback if defined
       let globalSkipRoute = false;
       if (this.globalBeforeTaskAction !== null) {
-        this.log(`Global beforeTask executing for task: ${task.name}`);
+        console.debug(`Global beforeTask executing for task: ${task.name}`);
         try {
           if (this.globalBeforeTaskAction(task) === 'skipRouteLoop') {
             globalSkipRoute = true;
           }
         } catch (error) {
-          this.warning(`Global beforeTask callback error for task: ${task.name}`, error);
+          console.warn(`Global beforeTask callback error for task: ${task.name}`, error);
         }
       }
 
       for (let i = 0; i < task.config.maxTaskRunTimes && this.running && !exitTask; i++) {
-        this.log(`Task: ${task.name} run ${task.runTimes}`);
+        console.info(`Task: ${task.name} run ${task.runTimes}`);
         let skipRoute = globalSkipRoute;
         if (task.config.beforeTask !== null) {
-          this.log(`Task: ${task.name} run ${task.runTimes} do beforeTask()`);
+          console.debug(`Task: ${task.name} run ${task.runTimes} do beforeTask()`);
           if (task.config.beforeTask(task) === 'skipRouteLoop') {
             skipRoute = true;
           }
         }
 
         if (skipRoute) {
-          this.log(`Task: ${task.name} run ${task.runTimes} skipRouteLoop`);
+          console.info(`Task: ${task.name} run ${task.runTimes} skipRouteLoop`);
         } else {
           exitTask = this.startRouteLoop(task);
         }
 
         if (task.config.afterTask !== null) {
-          this.log(`Task: ${task.name} run ${task.runTimes} do afterTask()`);
+          console.debug(`Task: ${task.name} run ${task.runTimes} do afterTask()`);
           task.config.afterTask(task);
         }
 
@@ -542,18 +543,18 @@ export class Rerouter {
         task.lastRunTime = now;
         const during = now - task.startTime;
         if (task.config.maxTaskDuring > 0 && during >= task.config.maxTaskDuring) {
-          this.log(`Task: ${task.name} taskDuring: ${during}/${task.config.maxTaskDuring} reached, stop`);
+          console.info(`Task: ${task.name} taskDuring: ${during}/${task.config.maxTaskDuring} reached, stop`);
           break;
         }
       }
 
       // Execute global afterTask callback if defined
       if (this.globalAfterTaskAction !== null) {
-        this.log(`Global afterTask executing for task: ${task.name}`);
+        console.debug(`Global afterTask executing for task: ${task.name}`);
         try {
           this.globalAfterTaskAction(task);
         } catch (error) {
-          this.warning(`Global afterTask callback error for task: ${task.name}`, error);
+          console.warn(`Global afterTask callback error for task: ${task.name}`, error);
         }
       }
 
@@ -578,7 +579,7 @@ export class Rerouter {
     const finishRoundFunc = (exitTask: boolean = false) => {
       routeLoop = false;
       exitTaskResult = exitTask;
-      this.log(`finish round: ${this.routeContext?.task.name}; exitTask: ${exitTask}`);
+      console.info(`finish round: ${this.routeContext?.task.name}; exitTask: ${exitTask}`);
     };
     // pointer for short code
     const context = this.routeContext;
@@ -592,14 +593,14 @@ export class Rerouter {
       // check task.autoStop
       const taskRunDuring = now - task.startTime;
       if (task.config.forceStop && taskRunDuring > task.config.maxTaskDuring && task.config.maxTaskDuring > 0) {
-        this.log(`Task ${task.name} AutoStop, exceed taskRunDuring`);
+        console.info(`Task ${task.name} AutoStop, exceed taskRunDuring`);
         break;
       }
 
       // check isAppOn or auto launch it
       if (this.rerouterConfig.autoLaunchApp) {
         if (!this.checkInApp()) {
-          this.log(`AppIsNotStarted, startApp ${this.rerouterConfig.packageName}`);
+          console.info(`AppIsNotStarted, startApp ${this.rerouterConfig.packageName}`);
 
           // Execute before start app action
           if (this.beforeStartAppRouteAction !== null) {
@@ -669,10 +670,10 @@ export class Rerouter {
   }
 
   private doActionForRoute(context: RouteContext, image: Image, route: Required<RouteConfig>, matchedPages: Page[], finishRound: (exitTask?: boolean) => void) {
-    // TODO fix me, currently force print route.path
     const pageNames = matchedPages.map(page => page.name).join(', ');
-    console.log(`handleMatchedRoute: ${route.path}, pages: [${pageNames}], times: ${context.matchTimes}, during: ${context.matchDuring}`);
-    // this.logImpl(route.debug, `handleMatchedRoute: ${route.path}, times: ${context.matchTimes}, during: ${context.matchDuring}`);
+    console.info(
+      `handleMatchedRoute: ${route.path}, task: ${context.task.name}, pages: [${pageNames}], times: ${context.matchTimes}, during: ${context.matchDuring}`
+    );
     if (context.matchTimes < route.shouldMatchTimes || context.matchDuring < route.shouldMatchDuring) {
       // should still wait for matching condition
       return;
@@ -684,21 +685,21 @@ export class Rerouter {
     try {
       // Execute global beforeRoute callback if defined
       if (this.globalBeforeRouteAction !== null) {
-        this.logImpl(route.debug, `Global beforeRoute executing for route: ${route.path}`);
+        console.debug(`Global beforeRoute executing for route: ${route.path}`);
         try {
           this.globalBeforeRouteAction(context, image, matchedPages);
         } catch (error) {
-          this.warning(`Global beforeRoute callback error for route: ${route.path}`, error);
+          console.warn(`Global beforeRoute callback error for route: ${route.path}`, error);
         }
       }
 
       // Execute beforeRoute callback if defined
       if (route.beforeRoute !== null) {
-        this.logImpl(route.debug, `Route: ${route.path} executing beforeRoute callback`);
+        console.debug(`Route: ${route.path} executing beforeRoute callback`);
         try {
           route.beforeRoute(context, image, matchedPages);
         } catch (error) {
-          this.warning(`Route: ${route.path} beforeRoute callback error:`, error);
+          console.warn(`Route: ${route.path} beforeRoute callback error:`, error);
         }
       }
 
@@ -716,28 +717,28 @@ export class Rerouter {
           route.action(context, image, matchedPages, finishRound);
         }
       } catch (error) {
-        this.warning(`Route: ${route.path} action execution error:`, error);
+        console.warn(`Route: ${route.path} action execution error:`, error);
       }
 
       Utils.sleep(route.afterActionDelay);
 
       // Execute afterRoute callback if defined
       if (route.afterRoute !== null) {
-        this.logImpl(route.debug, `Route: ${route.path} executing afterRoute callback`);
+        console.debug(`Route: ${route.path} executing afterRoute callback`);
         try {
           route.afterRoute(context, image, matchedPages);
         } catch (error) {
-          this.warning(`Route: ${route.path} afterRoute callback error:`, error);
+          console.warn(`Route: ${route.path} afterRoute callback error:`, error);
         }
       }
 
       // Execute global afterRoute callback if defined
       if (this.globalAfterRouteAction !== null) {
-        this.logImpl(route.debug, `Global afterRoute executing for route: ${route.path}`);
+        console.debug(`Global afterRoute executing for route: ${route.path}`);
         try {
           this.globalAfterRouteAction(context, image, matchedPages);
         } catch (error) {
-          this.warning(`Global afterRoute callback error for route: ${route.path}`, error);
+          console.warn(`Global afterRoute callback error for route: ${route.path}`, error);
         }
       }
     } finally {
@@ -769,8 +770,7 @@ export class Rerouter {
 
       const { isMatched, matchedPages } = this.isMatchRouteImpl(image, rotation, route, taskName);
       if (isMatched) {
-        this.logImpl(
-          route.debug,
+        console.debug(
           'current match:',
           matchedPages.map(p => p.name)
         );
@@ -804,7 +804,7 @@ export class Rerouter {
       .join('\n');
 
     const warningMsg = `a route conflict when in Task: "${taskName}", details: \n${matchDetails}`;
-    this.warning(warningMsg);
+    console.warn(warningMsg);
 
     if (this.rerouterConfig.debugSlackUrl !== '') {
       Utils.sendSlackMessage(this.rerouterConfig.debugSlackUrl, 'Conflict Routes Report', `${DEFAULT_REROUTER_CONFIG.deviceId} just logged ${warningMsg}`);
@@ -849,7 +849,7 @@ export class Rerouter {
   } {
     // check rotation
     if (route.rotation !== rotation) {
-      this.logImpl(route.debug, `findMatchedRoute ${route.path} not match rotation, skip`);
+      console.debug(`findMatchedRoute ${route.path} not match rotation, skip`);
       return { isMatched: false, matchedPages: [] };
     }
     let isMatched = false;
@@ -857,13 +857,13 @@ export class Rerouter {
     // check route.match
     if (route.match !== null) {
       if (route.match instanceof Page) {
-        const match = this.isMatchPageImpl(image, route.match, this.defaultConfig.PageThres, route.debug);
+        const match = this.isMatchPageImpl(image, route.match, this.defaultConfig.PageThres);
         if (match) {
           isMatched = true;
           matchedPages.push(route.match);
         }
       } else if (route.match instanceof GroupPage) {
-        const match = this.isMatchGroupPageImpl(image, route.match, this.defaultConfig.GroupPageThres, route.debug);
+        const match = this.isMatchGroupPageImpl(image, route.match, this.defaultConfig.GroupPageThres);
         if (match.length !== 0) {
           isMatched = true;
           matchedPages.push(...match);
@@ -873,9 +873,9 @@ export class Rerouter {
     // check route.isMatch function
     if (!isMatched && route.customMatch !== null) {
       isMatched = route.customMatch(taskName, image);
-      this.logImpl(route.debug, `findMatchedRoute ${route.path} isMatch() => ${isMatched}`);
+      console.debug(`findMatchedRoute ${route.path} isMatch() => ${isMatched}`);
     }
-    this.logImpl(route.debug, `findMatchedRoute ${route.path} match: ${isMatched}, firstPage: ${matchedPages[0]?.name}`);
+    console.debug(`findMatchedRoute ${route.path} match: ${isMatched}, firstPage: ${matchedPages[0]?.name}`);
 
     return {
       isMatched,
@@ -883,10 +883,10 @@ export class Rerouter {
     };
   }
 
-  private isMatchPageImpl(image: Image, page: Page, parentThres: number, debug: boolean): boolean {
+  private isMatchPageImpl(image: Image, page: Page, parentThres: number): boolean {
     const pageThres = page.thres;
     let isSame = true;
-    this.logImpl(debug, `checkMatchPage[${page.name}]`);
+    console.debug(`checkMatchPage[${page.name}]`);
 
     for (let i = 0; isSame && i < page.points.length; i++) {
       const point = page.points[i];
@@ -897,8 +897,7 @@ export class Rerouter {
       const isPointColorMatch = score >= thres === shouldMatch;
       if (!isPointColorMatch) {
         isSame = false;
-        this.logImpl(
-          debug,
+        console.debug(
           `point[${i}] match false: score: ${score}, thres: ${thres}\n`,
           `expect: ${Utils.formatXYRGB(point)}\n`,
           `   get: ${Utils.formatXYRGB({ ...color, x: point.x, y: point.y })}`
@@ -906,19 +905,19 @@ export class Rerouter {
       }
     }
 
-    this.logImpl(debug, `checkMatchPage[${page.name}][match: ${isSame}]`);
+    console.debug(`checkMatchPage[${page.name}][match: ${isSame}]`);
     return isSame;
   }
 
-  private isMatchGroupPageImpl(image: Image, groupPage: GroupPage, parentThres: number, debug: boolean): Page[] {
+  private isMatchGroupPageImpl(image: Image, groupPage: GroupPage, parentThres: number): Page[] {
     const thres = groupPage.thres ?? parentThres;
     const matchedPages: Page[] = [];
 
     // First, collect all actually matched pages
     for (let i = 0; i < groupPage.pages.length; i++) {
       const page = groupPage.pages[i];
-      const isPageMatch = this.isMatchPageImpl(image, page, thres, debug);
-      this.logImpl(debug, `checkMatchGroupPage: ${groupPage.name}, page[${i}]: ${page.name} match: ${isPageMatch}`);
+      const isPageMatch = this.isMatchPageImpl(image, page, thres);
+      console.debug(`checkMatchGroupPage: ${groupPage.name}, page[${i}]: ${page.name} match: ${isPageMatch}`);
 
       if (isPageMatch) {
         matchedPages.push(page);
@@ -935,21 +934,6 @@ export class Rerouter {
     }
 
     return matchedPages;
-  }
-
-  private log(...args: any[]): void {
-    this.logImpl(this.debug, ...args);
-  }
-  private logImpl(debug: boolean, ...args: any[]): void {
-    if (!debug || !this.debug) {
-      return;
-    }
-    // only log when debug + this.debug is true
-    console.log('[Rerouter][debug]', ...args);
-  }
-
-  private warning(...args: any[]): void {
-    console.log('[Rerouter][warning]', ...args);
   }
 
   public updateGameStatus(status: GameStatus): boolean {
@@ -970,7 +954,7 @@ export class Rerouter {
     }
 
     if (this.rerouterConfig.deviceId === '' || this.rerouterConfig.instanceId === '') {
-      console.log(`deviceId or instanceId is empty, cannot update game status`);
+      console.warn(`deviceId or instanceId is empty, cannot update game status`);
       return false;
     }
 
@@ -1043,10 +1027,10 @@ export class Rerouter {
 
     const currentImage = this.screen.getCvtDevScreenshot();
     const score = getIdentityScore(currentImage, this.lastScreenshotImage);
-    console.log(`checkScreenFrozen: score: ${score}`);
+    console.debug(`checkScreenFrozen: score: ${score}`);
     if (score > 0.999) {
       this.screenFrozenTimes++;
-      console.log(`Screen is frozen, times ${this.screenFrozenTimes}`);
+      console.info(`Screen is frozen, times ${this.screenFrozenTimes}`);
     } else {
       this.screenFrozenTimes = 0;
     }
@@ -1054,7 +1038,7 @@ export class Rerouter {
     this.lastScreenshotImage = currentImage;
 
     if (this.screenFrozenTimes >= 10) {
-      console.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
+      console.warn(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
       releaseImage(this.lastScreenshotImage);
       this.sendLog('Rerouter', 'info', 'ScreenFrozen', 'Screen is frozen for more than 10 times (minutes), restarting emulator...');
       this.stopEmulator();

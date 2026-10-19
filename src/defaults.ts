@@ -13,9 +13,9 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   checkFrozenScreen: true,
   debugSlackUrl: '',
   logger: {
-    overrideGlobalConsole: false,
+    overrideGlobalConsole: true,
     timezoneOffsetHour: 8,
-    logLevel: 'ALL',
+    logLevel: 'INFO',
   },
   conflictRoutesHandler: undefined,
   saveImageRoot: '/data/media/0/Downloads/', // redroid default download folder
@@ -63,7 +63,7 @@ export const defaultHandleConflictRoutes: ConflictRoutesHandler = ({ isStrictMod
   if (isStrictMode) {
     return new Error(`conflict detected, task: ${taskName}`);
   }
-  console.log(`try handle conflict`);
+  console.warn(`try handle conflict`);
   finishRound(true);
   keycode('BACK', DEFAULT_SCREEN_CONFIG.actionDuring);
 };

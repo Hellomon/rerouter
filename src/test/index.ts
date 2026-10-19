@@ -1,4 +1,5 @@
 import { rerouter } from '../rerouter';
+import { overrideConsole } from '../overrides';
 import { Page, RouteConfig, GroupPage, XYRGB } from '../struct';
 import { Utils } from '../utils';
 
@@ -74,7 +75,7 @@ export function runRouteImageFolderTest(options: RouteImageFolderTestOptions): v
 
   // Allow tests to re-run cleanly
   rerouter.reset();
-  rerouter.debug = !!debug;
+  overrideConsole.setLogLevel(debug ? 'DEBUG' : 'INFO');
 
   // Execute route setup (synchronously expected)
   setupRoutes();

@@ -18,7 +18,7 @@ const originConsole = (console as any)._override
       log: createShadowMethod(console, console.log),
     };
 
-type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'ALL';
+export type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'ALL';
 const logLevels: Record<LogLevel, number> = {
   ERROR: 0,
   WARN: 1,
@@ -26,15 +26,6 @@ const logLevels: Record<LogLevel, number> = {
   DEBUG: 3,
   TRACE: 4,
   ALL: 5,
-};
-
-const levelToMethod: Record<LogLevel, typeof console.log> = {
-  ERROR: originConsole.error,
-  WARN: originConsole.warn,
-  INFO: originConsole.info,
-  DEBUG: originConsole.debug,
-  TRACE: originConsole.trace,
-  ALL: originConsole.log,
 };
 
 /**
@@ -63,7 +54,7 @@ export const overrideConsole: typeof originConsole & {
   doOverrideGlobalConsole: (isOverride: boolean) => void;
 } = {
   timezoneOffsetHour: 8, // taipei timezone
-  logLevel: 'ALL',
+  logLevel: 'INFO',
 
   doOverrideGlobalConsole: (isOverride: boolean) => {
     const c = console as any;
@@ -112,13 +103,14 @@ export const overrideConsole: typeof originConsole & {
     overrideConsole.logLevel = level;
   },
 
-  // override log related method
+  // console.log is INFO so game scripts stay visible when logLevel is INFO.
+  // Every level writes through originConsole.log: the device host captures that method.
   error: logFactory('ERROR', 'red'),
   warn: logFactory('WARN', 'magenta'),
   info: logFactory('INFO', 'yellow'),
   debug: logFactory('DEBUG', 'cyan'),
   trace: logFactory('TRACE', 'white'),
-  log: logFactory('ALL', 'grey'),
+  log: logFactory('INFO', 'grey'),
 };
 
 function createShadowMethod(self: Console, method: Function) {
@@ -133,7 +125,7 @@ function logFactory(level: LogLevel, color: keyof typeof colors) {
     const header = getHeader(level, color);
 
     const msg = header + trimMessage(message);
-    levelToMethod[level](msg, ...optionalParams);
+    originConsole.log(msg, ...optionalParams);
   };
 }
 
