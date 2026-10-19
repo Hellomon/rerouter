@@ -69,7 +69,6 @@ export class Rerouter {
   }
 
   private init(): void {
-    this.applyLogger();
     // sort routes by priority
     this.routes.sort((a, b) => b.priority - a.priority);
     // check and calculate screen config
@@ -94,7 +93,6 @@ export class Rerouter {
    * @param config information about how route match and route action
    */
   public addRoute(config: RouteConfig): void {
-    this.applyLogger();
     // @ts-ignore included 'core-js/es/array/find-index'
     const existingRouteIndex = this.routes.findIndex(route => route.path === config.path);
 
@@ -174,7 +172,6 @@ export class Rerouter {
    * @param config information about how task works
    */
   public addTask(config: TaskConfig): void {
-    this.applyLogger();
     // Check if a task with the same name already exists
     for (let i = 0; i < this.tasks.length; i++) {
       if (this.tasks[i].name === config.name) {
