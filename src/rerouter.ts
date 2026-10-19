@@ -770,12 +770,10 @@ export class Rerouter {
 
       const { isMatched, matchedPages } = this.isMatchRouteImpl(image, rotation, route, taskName);
       if (isMatched) {
-        if (isLogEnabled('DEBUG')) {
-          console.debug(
-            'current match:',
-            matchedPages.map(p => p.name)
-          );
-        }
+        console.debug(
+          'current match:',
+          matchedPages.map(p => p.name)
+        );
 
         // First match found - set as current highest priority
         if (currentHighestPriority === null) {
@@ -851,9 +849,7 @@ export class Rerouter {
   } {
     // check rotation
     if (route.rotation !== rotation) {
-      if (isLogEnabled('DEBUG')) {
-        console.debug(`findMatchedRoute ${route.path} not match rotation, skip`);
-      }
+      console.debug(`findMatchedRoute ${route.path} not match rotation, skip`);
       return { isMatched: false, matchedPages: [] };
     }
     let isMatched = false;
@@ -877,13 +873,9 @@ export class Rerouter {
     // check route.isMatch function
     if (!isMatched && route.customMatch !== null) {
       isMatched = route.customMatch(taskName, image);
-      if (isLogEnabled('DEBUG')) {
-        console.debug(`findMatchedRoute ${route.path} isMatch() => ${isMatched}`);
-      }
+      console.debug(`findMatchedRoute ${route.path} isMatch() => ${isMatched}`);
     }
-    if (isLogEnabled('DEBUG')) {
-      console.debug(`findMatchedRoute ${route.path} match: ${isMatched}, firstPage: ${matchedPages[0]?.name}`);
-    }
+    console.debug(`findMatchedRoute ${route.path} match: ${isMatched}, firstPage: ${matchedPages[0]?.name}`);
 
     return {
       isMatched,
@@ -894,10 +886,7 @@ export class Rerouter {
   private isMatchPageImpl(image: Image, page: Page, parentThres: number): boolean {
     const pageThres = page.thres;
     let isSame = true;
-    const debugMatch = isLogEnabled('DEBUG');
-    if (debugMatch) {
-      console.debug(`checkMatchPage[${page.name}]`);
-    }
+    console.debug(`checkMatchPage[${page.name}]`);
 
     for (let i = 0; isSame && i < page.points.length; i++) {
       const point = page.points[i];
@@ -908,7 +897,7 @@ export class Rerouter {
       const isPointColorMatch = score >= thres === shouldMatch;
       if (!isPointColorMatch) {
         isSame = false;
-        if (debugMatch) {
+        if (isLogEnabled('DEBUG')) {
           console.debug(
             `point[${i}] match false: score: ${score}, thres: ${thres}\n`,
             `expect: ${Utils.formatXYRGB(point)}\n`,
@@ -918,9 +907,7 @@ export class Rerouter {
       }
     }
 
-    if (debugMatch) {
-      console.debug(`checkMatchPage[${page.name}][match: ${isSame}]`);
-    }
+    console.debug(`checkMatchPage[${page.name}][match: ${isSame}]`);
     return isSame;
   }
 
@@ -932,9 +919,7 @@ export class Rerouter {
     for (let i = 0; i < groupPage.pages.length; i++) {
       const page = groupPage.pages[i];
       const isPageMatch = this.isMatchPageImpl(image, page, thres);
-      if (isLogEnabled('DEBUG')) {
-        console.debug(`checkMatchGroupPage: ${groupPage.name}, page[${i}]: ${page.name} match: ${isPageMatch}`);
-      }
+      console.debug(`checkMatchGroupPage: ${groupPage.name}, page[${i}]: ${page.name} match: ${isPageMatch}`);
 
       if (isPageMatch) {
         matchedPages.push(page);
