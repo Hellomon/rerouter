@@ -37,6 +37,8 @@ export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
   logScreenshotLastTime: 0,
   logScreenshotMinIntervalInSec: 10,
   logScreenshotMaxFiles: 100,
+  logScreenshotLastCleanupTime: 0,
+  logScreenshotCleanupIntervalInSec: 600,
   logScreenshotMaxDays: -1, // -1 to disable date-based cleanup and folder organization
   logScreenshotFolder: '',
 };

@@ -177,25 +177,36 @@ export class Screen {
     );
   }
 
-  checkAndSaveScreenshots() {
-    if (this.config.logScreenshotFolder !== '' && Date.now() - this.config.logScreenshotLastTime > this.config.logScreenshotMinIntervalInSec * 1000) {
-      this.config.logScreenshotLastTime = Date.now();
-      
-      // Build folder path with date if maxDays is configured
-      let folderPath = this.config.logScreenshotFolder;
-      if (this.config.logScreenshotMaxDays > 0) {
-        const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);
-        const datePart = timeStr.split(' ')[0];
-        folderPath = `${this.config.logScreenshotFolder}/${datePart}`;
+  /**
+   * The image log: a screenshot of the whole screen is saved when logScreenshotMinIntervalInSec has passed since the last one.
+   * Called with the image (getCvtDevScreenshot does, the capture it made anyway) it saves that one, whatever the time says: the caller has decided.
+   * Called with no image (an older script, or another caller) it checks the time and takes a screenshot itself, as it did before.
+   * The old files are looked for at most every logScreenshotCleanupIntervalInSec, and not at every save: it is not exact, up to that much
+   * more than logScreenshotMaxFiles (or maxDays) is on the disk until the next time.
+   */
+  checkAndSaveScreenshots(image: Image | undefined = undefined) {
+    if (this.config.logScreenshotFolder === '') {
+      return;
+    }
+    if (image === undefined) {
+      if (!this.isLogScreenshotDue()) {
+        return;
       }
-      
-      Utils.saveScreenshotToDisk(
-        folderPath,
-        'log',
-        true,
-        undefined,
-        DEFAULT_REROUTER_CONFIG.saveImageRoot
-      );
+      this.config.logScreenshotLastTime = Date.now();
+    }
+
+    // Build folder path with date if maxDays is configured
+    let folderPath = this.config.logScreenshotFolder;
+    if (this.config.logScreenshotMaxDays > 0) {
+      const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);
+      const datePart = timeStr.split(' ')[0];
+      folderPath = `${this.config.logScreenshotFolder}/${datePart}`;
+    }
+
+    Utils.saveScreenshotToDisk(folderPath, 'log', true, image, DEFAULT_REROUTER_CONFIG.saveImageRoot);
+
+    if (Date.now() - this.config.logScreenshotLastCleanupTime > this.config.logScreenshotCleanupIntervalInSec * 1000) {
+      this.config.logScreenshotLastCleanupTime = Date.now();
       Utils.removeOldestFilesIfExceedsLimit(
         this.config.logScreenshotFolder,
         this.config.logScreenshotMaxFiles,
@@ -205,18 +216,48 @@ export class Screen {
     }
   }
 
-  public getCvtDevScreenshot(): Image {
-    this.checkAndSaveScreenshots();
+  private isLogScreenshotDue(): boolean {
+    return this.config.logScreenshotFolder !== '' && Date.now() - this.config.logScreenshotLastTime > this.config.logScreenshotMinIntervalInSec * 1000;
+  }
 
-    return getScreenshotModify(
-      this.config.screenOffsetX,
-      this.config.screenOffsetY,
-      this.config.screenWidth,
-      this.config.screenHeight,
-      this.config.devWidth,
-      this.config.devHeight,
-      100
-    );
+  public getCvtDevScreenshot(): Image {
+    const c = this.config;
+    if (!this.isLogScreenshotDue() || c.screenWidth <= 0 || c.screenHeight <= 0) {
+      this.checkAndSaveScreenshots();
+      return getScreenshotModify(c.screenOffsetX, c.screenOffsetY, c.screenWidth, c.screenHeight, c.devWidth, c.devHeight, 100);
+    }
+    // The log is due: the whole screen is captured once. That image is saved as it is (the log keeps the resolution of the device), and the image
+    // for the script is made from it in the same way getScreenshotModify makes it: cut the screen area, scale it to the development size.
+    c.logScreenshotLastTime = Date.now();
+    const full = getScreenshot();
+    try {
+      this.checkAndSaveScreenshots(full);
+    } catch (error: any) {
+      // the image log is never a reason to lose the screenshot the caller asked for
+      console.warn(`Warning in checkAndSaveScreenshots: ${error.message}`);
+    }
+    return this.toDevImage(full);
+  }
+
+  /** The screen area of a screenshot of the whole screen, at the development size. The image that is given is released unless it is the one that is returned. */
+  private toDevImage(full: Image): Image {
+    const c = this.config;
+    const { width, height } = getImageSize(full);
+    let image = full;
+    if (c.screenOffsetX !== 0 || c.screenOffsetY !== 0 || c.screenWidth !== width || c.screenHeight !== height) {
+      image = cropImage(full, c.screenOffsetX, c.screenOffsetY, c.screenWidth, c.screenHeight);
+    }
+    if (c.devWidth !== c.screenWidth || c.devHeight !== c.screenHeight) {
+      const scaled = resizeImage(image, c.devWidth, c.devHeight);
+      if (image !== full) {
+        releaseImage(image);
+      }
+      image = scaled;
+    }
+    if (image !== full) {
+      releaseImage(full);
+    }
+    return image;
   }
 
   public getRotation(): 'vertical' | 'horizontal' {

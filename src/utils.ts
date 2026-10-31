@@ -248,20 +248,25 @@ export class Utils {
 
     const fullFolderPath = `${saveImageRoot}${folderPath}`;
 
-    // Create folder if it doesn't exist
-    execute(`mkdir -p "${fullFolderPath}"`);
-
     // Use the same timezone handling as overrideConsole
     const timeStr = Utils.timeLabel(overrideConsole.timezoneOffsetHour);
     const [datePart, timePart] = timeStr.split(' ');
     const filename = timestamp ? `${datePart}T${timePart.replace(/:/g, '.')}_${suffix}.png` : `${suffix}.png`;
+    const target = `${fullFolderPath}/${filename}`;
 
-    if (img !== undefined) {
-      saveImage(img, `${fullFolderPath}/${filename}`);
-    } else {
-      img = getScreenshot();
-      saveImage(img, `${fullFolderPath}/${filename}`);
-      releaseImage(img);
+    const shot = img !== undefined ? img : getScreenshot();
+    try {
+      try {
+        saveImage(shot, target);
+      } catch (error: any) {
+        // saveImage makes the folder itself; if it could not, make it here and save once more
+        execute(`mkdir -p "${fullFolderPath}"`);
+        saveImage(shot, target);
+      }
+    } finally {
+      if (img === undefined) {
+        releaseImage(shot);
+      }
     }
 
     console.log(`Write to file: ${fullFolderPath}/${filename}`);
