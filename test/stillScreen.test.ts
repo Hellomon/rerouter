@@ -1,5 +1,5 @@
 import { Screen } from '../src/screen';
-import { DEFAULT_SCREEN_CONFIG } from '../src/defaults';
+import { DEFAULT_REROUTER_CONFIG, DEFAULT_SCREEN_CONFIG } from '../src/defaults';
 import { rerouter } from '../src/rerouter';
 
 // FIXME: should use a test framework. Run: npx ts-node --transpile-only test/stillScreen.test.ts
@@ -29,6 +29,11 @@ g.saveImage = () => {};
 g.execute = () => '';
 
 const said: string[] = [];
+// ---- the defaults: the frozen-screen restart is on, as it always was; comparing every screenshot and writing it to the log are off
+check('the frozen screen restart is on by default', DEFAULT_REROUTER_CONFIG.checkFrozenScreen === true, '');
+check('comparing every screenshot is off by default', DEFAULT_SCREEN_CONFIG.trackStillScreen === false, '');
+check('writing it to the log is off by default', DEFAULT_SCREEN_CONFIG.logStillScreen === false, '');
+
 const real = console.log;
 const scr = (): string[] => said.filter(l => l.startsWith('SCR '));
 let task = 'pvp';
