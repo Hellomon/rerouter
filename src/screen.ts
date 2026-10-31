@@ -10,7 +10,9 @@ export class Screen {
   private logSavedSince = 0;
   private logLastFile = '';
   // the still screen (trackStill): the small copy of the last screenshot, when it was taken, and the run of screenshots that were the same
-  private still = { thumb: null as Image | null, lastAt: 0, runStart: 0, runEnd: 0, watchedMs: 0, frames: 0, lastBeat: 0, announced: false };
+  private still = { thumb: null as Image | null, lastAt: 0, runStart: 0, runEnd: 0, frozenSince: 0, watchedMs: 0, frames: 0, lastBeat: 0, announced: false };
+  /** Rerouter sets it when it watches for a frozen screen (checkFrozenScreen): the screenshots are compared even when nothing is written (logStillScreen is off). */
+  public trackFrozen = false;
   /** The name of the task that runs now, for the `SCR` lines; Rerouter sets it. */
   public taskNameProvider: () => string = () => '-';
 
@@ -303,25 +305,34 @@ export class Screen {
    */
   private trackStill(image: Image) {
     const c = this.config;
-    if (!c.logStillScreen) {
+    if (!c.logStillScreen && !this.trackFrozen) {
       return;
     }
     const now = Date.now();
     const st = this.still;
     const thumb = resizeImage(image, 160, 90);
-    if (!st.announced) {
+    if (c.logStillScreen && !st.announced) {
       st.announced = true;
       st.lastBeat = now;
       this.logStill(`on score=${c.stillScreenScore} min=${c.stillScreenMinSeconds} beat=${c.stillScreenHeartbeatSeconds}`);
     }
     if (st.thumb !== null) {
       const gap = now - st.lastAt;
+      const same = getIdentityScore(thumb, st.thumb) > c.stillScreenScore;
+      // the frozen screen (getFrozenSeconds) goes on through a gap: the screen is the same as the last time it was looked at, only a change ends it
+      if (same) {
+        if (st.frozenSince === 0) {
+          st.frozenSince = st.lastAt;
+        }
+      } else {
+        st.frozenSince = 0;
+      }
       if (gap > Screen.MAX_STILL_GAP_MS) {
         this.endStillRun('gap');
       } else {
         st.watchedMs += gap;
         st.frames++;
-        if (getIdentityScore(thumb, st.thumb) > c.stillScreenScore) {
+        if (same) {
           if (st.runStart === 0) {
             st.runStart = st.lastAt;
           }
@@ -335,7 +346,7 @@ export class Screen {
     st.thumb = thumb;
     st.lastAt = now;
 
-    if (now - st.lastBeat >= c.stillScreenHeartbeatSeconds * 1000) {
+    if (c.logStillScreen && now - st.lastBeat >= c.stillScreenHeartbeatSeconds * 1000) {
       if (st.runStart !== 0 && st.runEnd - st.runStart >= c.stillScreenMinSeconds * 1000) {
         this.logStill(`still=${Math.round((st.runEnd - st.runStart) / 1000)} end=ongoing`);
       }
@@ -349,6 +360,12 @@ export class Screen {
     }
   }
 
+  /** How long the screen has not changed, in seconds, as of the last screenshot (0 when it changed, or when nothing is compared). */
+  public getFrozenSeconds(): number {
+    const st = this.still;
+    return st.frozenSince === 0 ? 0 : (st.lastAt - st.frozenSince) / 1000;
+  }
+
   private endStillRun(reason: string) {
     const st = this.still;
     if (st.runStart !== 0 && st.runEnd - st.runStart >= this.config.stillScreenMinSeconds * 1000) {
@@ -359,6 +376,9 @@ export class Screen {
   }
 
   private logStill(fields: string) {
+    if (!this.config.logStillScreen) {
+      return;
+    }
     const stamp = Utils.timeLabel(overrideConsole.timezoneOffsetHour).replace(' ', 'T');
     console.log(`SCR ts=${stamp} task=${this.taskNameProvider()} ${fields}`);
   }

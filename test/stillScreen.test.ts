@@ -1,5 +1,6 @@
 import { Screen } from '../src/screen';
 import { DEFAULT_SCREEN_CONFIG } from '../src/defaults';
+import { rerouter } from '../src/rerouter';
 
 // FIXME: should use a test framework. Run: npx ts-node --transpile-only test/stillScreen.test.ts
 let failed = 0;
@@ -78,6 +79,44 @@ try {
   const off = new Screen({ ...DEFAULT_SCREEN_CONFIG, screenWidth: 640, screenHeight: 360, devWidth: 640, devHeight: 360 } as any);
   now += 5000; off.getCvtDevScreenshot(); now += 5000; off.getCvtDevScreenshot();
   check('off by default: no line, no small picture', said.length === 0 && thumbs === 0, `${said.length} ${thumbs}`);
+
+  // ---- the frozen screen: the same comparison, with nothing written (logStillScreen is off), and what checkScreenFrozen reads
+  said.length = 0; showing = 'A';
+  const watcher = new Screen({ ...DEFAULT_SCREEN_CONFIG, screenWidth: 640, screenHeight: 360, devWidth: 640, devHeight: 360 } as any);
+  watcher.trackFrozen = true;
+  const seeW = (pic: string, afterSeconds: number) => { now += afterSeconds * 1000; showing = pic; watcher.getCvtDevScreenshot(); };
+  seeW('A', 0); seeW('A', 4); seeW('A', 4);
+  check('compared with nothing written when only the frozen screen is watched', scr().length === 0 && watcher.getFrozenSeconds() === 8, `${scr().length} ${watcher.getFrozenSeconds()}`);
+  seeW('A', 100);                               // the script looked away for 100 s: the screen is the same as it was, the frozen time goes on
+  check('a gap does not end a frozen screen (the screen is the same as the last time)', watcher.getFrozenSeconds() === 108, String(watcher.getFrozenSeconds()));
+  seeW('B', 4);
+  check('a change ends it', watcher.getFrozenSeconds() === 0, String(watcher.getFrozenSeconds()));
+  const nobody = new Screen({ ...DEFAULT_SCREEN_CONFIG, screenWidth: 640, screenHeight: 360, devWidth: 640, devHeight: 360 } as any);
+  thumbs = 0; now += 5000; nobody.getCvtDevScreenshot(); now += 5000; nobody.getCvtDevScreenshot();
+  check('nothing is compared when neither is on', thumbs === 0 && nobody.getFrozenSeconds() === 0, String(thumbs));
+
+  // ---- Rerouter.checkScreenFrozen: no screenshot of its own, restarts after 10 minutes of the same screen
+  let frozen = 0, stops = 0, captures = 0;
+  const r = rerouter as any;
+  r.screen = { getFrozenSeconds: () => frozen, getCvtDevScreenshot: () => { captures++; } };
+  r.stopEmulator = () => { stops++; };
+  r.sendLog = () => true;
+  r.screenFrozenTimes = 0;
+  said.length = 0;
+  frozen = 30; r.checkScreenFrozen();
+  check('less than a minute: nothing', said.length === 0 && stops === 0, said.join(' | '));
+  frozen = 61; r.checkScreenFrozen(); r.checkScreenFrozen();
+  check('a minute: said once, not at every call', said.filter(l => l.startsWith('Screen is frozen, times 1')).length === 1, said.join(' | '));
+  frozen = 5 * 60 + 5; r.checkScreenFrozen();
+  check('minutes count up', /times 5$/.test(said[said.length - 1]) && stops === 0, said[said.length - 1]);
+  frozen = 0; r.checkScreenFrozen();
+  frozen = 119; r.checkScreenFrozen();
+  check('a change starts over', /times 1$/.test(said[said.length - 1]) && stops === 0, said[said.length - 1]);
+  frozen = 599; r.checkScreenFrozen();
+  check('9 minutes: no restart', stops === 0, String(stops));
+  frozen = 600; r.checkScreenFrozen();
+  check('10 minutes: restart', stops === 1, String(stops));
+  check('and it never took a screenshot of its own', captures === 0, String(captures));
 
   // an error of the monitor does not take the screenshot away
   g.getIdentityScore = () => { throw new Error('no such function'); };

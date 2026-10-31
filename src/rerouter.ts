@@ -40,9 +40,7 @@ export class Rerouter {
   private localGameStatus: GameStatus | null = null;
   private cloudGameStatus: GameStatus | null = null;
 
-  // for screen frozen detection
-  private lastScreenshotImage: any | null = null;
-  private lastCheckScreenFrozenTime: number = 0;
+  // for screen frozen detection: whole minutes the screen has not changed (Screen.getFrozenSeconds)
   private screenFrozenTimes: number = 0;
 
   private static instance: Rerouter | undefined;
@@ -88,6 +86,7 @@ export class Rerouter {
 
     // new screen if screen config changed
     this.screen = new Screen(this.screenConfig);
+    this.screen.trackFrozen = this.rerouterConfig.checkFrozenScreen;
     this.screen.taskNameProvider = () => (this.taskNameProvider ? this.taskNameProvider() : this.routeContext ? this.routeContext.task.name : '-');
   }
 
@@ -1032,33 +1031,21 @@ export class Rerouter {
     }
   }
 
+  /**
+   * Watches for a screen that does not change, and restarts after 10 minutes of it. It does not take a screenshot of its own: the screenshots the
+   * script takes are compared with each other (Screen.trackStill) and this reads how long the screen has been the same.
+   */
   public checkScreenFrozen(): void {
-    const now = Date.now();
-    if (now - this.lastCheckScreenFrozenTime < 60 * 1000) {
-      return;
-    }
-    this.lastCheckScreenFrozenTime = now;
-
-    if (this.lastScreenshotImage === null) {
-      this.lastScreenshotImage = this.screen.getCvtDevScreenshot();
-      return;
-    }
-
-    const currentImage = this.screen.getCvtDevScreenshot();
-    const score = getIdentityScore(currentImage, this.lastScreenshotImage);
-    console.log(`checkScreenFrozen: score: ${score}`);
-    if (score > 0.999) {
-      this.screenFrozenTimes++;
+    const minutes = Math.floor(this.screen.getFrozenSeconds() / 60);
+    if (minutes > this.screenFrozenTimes) {
+      this.screenFrozenTimes = minutes;
       console.log(`Screen is frozen, times ${this.screenFrozenTimes}`);
-    } else {
+    } else if (minutes === 0) {
       this.screenFrozenTimes = 0;
     }
-    releaseImage(this.lastScreenshotImage);
-    this.lastScreenshotImage = currentImage;
 
     if (this.screenFrozenTimes >= 10) {
       console.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
-      releaseImage(this.lastScreenshotImage);
       this.sendLog('Rerouter', 'info', 'ScreenFrozen', 'Screen is frozen for more than 10 times (minutes), restarting emulator...');
       this.stopEmulator();
     }
