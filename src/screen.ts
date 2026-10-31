@@ -5,6 +5,10 @@ import { overrideConsole } from './overrides';
 
 export class Screen {
   private config: ScreenConfig;
+  // what the image log saved since it last said so (see checkAndSaveScreenshots)
+  private logSavedCount = 0;
+  private logSavedSince = 0;
+  private logLastFile = '';
 
   public constructor(config: ScreenConfig) {
     this.config = config;
@@ -203,10 +207,18 @@ export class Screen {
       folderPath = `${this.config.logScreenshotFolder}/${datePart}`;
     }
 
-    Utils.saveScreenshotToDisk(folderPath, 'log', true, image, DEFAULT_REROUTER_CONFIG.saveImageRoot);
+    // quiet: not a line of the log for every picture
+    this.logLastFile = Utils.saveScreenshotToDisk(folderPath, 'log', true, image, DEFAULT_REROUTER_CONFIG.saveImageRoot, true);
+    if (this.logSavedCount === 0) {
+      this.logSavedSince = Date.now();
+    }
+    this.logSavedCount++;
 
     if (Date.now() - this.config.logScreenshotLastCleanupTime > this.config.logScreenshotCleanupIntervalInSec * 1000) {
       this.config.logScreenshotLastCleanupTime = Date.now();
+      // one line for all of them, when the old files are looked for
+      console.log(`Image log: ${this.logSavedCount} saved in ${Math.max(1, Math.round((Date.now() - this.logSavedSince) / 60000))} min, last ${this.logLastFile}`);
+      this.logSavedCount = 0;
       Utils.removeOldestFilesIfExceedsLimit(
         this.config.logScreenshotFolder,
         this.config.logScreenshotMaxFiles,

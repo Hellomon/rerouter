@@ -240,8 +240,9 @@ export class Utils {
     suffix: string = '',
     timestamp: boolean = true,
     img: Image = undefined,
-    saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot
-  ) {
+    saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot,
+    quiet: boolean = false
+  ): string {
     if (folderPath.charAt(0) === '/') {
       folderPath = folderPath.substring(1);
     }
@@ -260,6 +261,7 @@ export class Utils {
         saveImage(shot, target);
       } catch (error: any) {
         // saveImage makes the folder itself; if it could not, make it here and save once more
+        console.warn(`saveImage failed (${error.message}), make the folder ${fullFolderPath} and save again`);
         execute(`mkdir -p "${fullFolderPath}"`);
         saveImage(shot, target);
       }
@@ -269,7 +271,11 @@ export class Utils {
       }
     }
 
-    console.log(`Write to file: ${fullFolderPath}/${filename}`);
+    // quiet: the image log saves one every few seconds, it says so once in a while instead (Screen.checkAndSaveScreenshots)
+    if (!quiet) {
+      console.log(`Write to file: ${target}`);
+    }
+    return target;
   }
 
   public static removeOldestFilesIfExceedsLimit(

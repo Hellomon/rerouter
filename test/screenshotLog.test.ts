@@ -1,5 +1,6 @@
 import { Screen } from '../src/screen';
 import { DEFAULT_SCREEN_CONFIG } from '../src/defaults';
+import { Utils } from '../src/utils';
 
 // FIXME: should use a test framework. Run: npx ts-node --transpile-only test/screenshotLog.test.ts
 let failed = 0;
@@ -39,7 +40,12 @@ function make(extra: object) {
 }
 
 const logLines = console.log;
-console.log = () => {};
+const warnLines = console.warn;
+const said: string[] = [];
+const warned: string[] = [];
+console.log = (...args: any[]) => { said.push(args.join(' ')); };
+console.warn = (...args: any[]) => { warned.push(args.join(' ')); };
+const imageLogLines = (): number => said.filter(l => l.startsWith('Image log:')).length;
 try {
   // ---- a screen that is scaled: 1280x720 at the development size 640x360
   let screen = make({});
@@ -52,6 +58,8 @@ try {
   check('no mkdir: saveImage makes the folder', made() === 0, String(made()));
   const firstCleanups = cleanups();
   check('the old files are looked for at the first save', firstCleanups === 1, String(firstCleanups));
+  check('no line of the log for the picture', !said.some(l => l.startsWith('Write to file')), said.join(' | '));
+  check('one line says what was saved, when the old files are looked for', imageLogLines() === 1 && /saved/.test(said[said.length - 1]), said[said.length - 1]);
 
   now += 5000;
   const plain = screen.getCvtDevScreenshot();
@@ -64,6 +72,8 @@ try {
   check('still not looked for before 10 minutes since the last time', cleanups() === firstCleanups, String(cleanups()));
   now += 60000; screen.getCvtDevScreenshot();
   check('looked for again after 10 minutes, once', cleanups() === firstCleanups + 1, String(cleanups()));
+  check('and one more line then, not one for every picture', imageLogLines() === 2 && !said.some(l => l.startsWith('Write to file')), String(imageLogLines()));
+  check('the line has the count of the pictures', /Image log: \d+ saved in \d+ min, last .*_log\.png/.test(said[said.length - 1]) && Number(/Image log: (\d+)/.exec(said[said.length - 1])![1]) > 10, said[said.length - 1]);
   check('and still no mkdir', made() === 0, String(made()));
 
   // a folder that was deleted: the save fails, the folder is made again, the file is saved
@@ -71,6 +81,7 @@ try {
   const before = saved.length, madeBefore = made();
   screen.getCvtDevScreenshot();
   check('a save that fails makes the folder and saves again, once', saved.length === before + 1 && made() === madeBefore + 1, '');
+  check('and says so', warned.some(l => l.startsWith('saveImage failed')), warned.join(' | '));
   // a save that fails twice does not take the screenshot from the caller
   failSaves = 2; now += 21000;
   const survived = screen.getCvtDevScreenshot();
@@ -105,6 +116,11 @@ try {
   screen.checkAndSaveScreenshots();
   check('and it keeps the interval', saved.length === 1, '');
 
+  // ---- the other callers of saveScreenshotToDisk still get their line
+  said.length = 0;
+  const written = Utils.saveScreenshotToDisk('matched', 'x', false, { x: 1 } as any, '/root/');
+  check('another caller still says where it wrote', said.length === 1 && said[0] === 'Write to file: /root/matched/x.png' && written === '/root/matched/x.png', said.join(' | '));
+
   // ---- no folder: nothing at all
   const quiet = new Screen({ ...DEFAULT_SCREEN_CONFIG, screenWidth: 1280, screenHeight: 720 } as any);
   const count = saved.length; fullShots = 0;
@@ -112,6 +128,7 @@ try {
   check('no folder, no save, no whole-screen capture', saved.length === count && fullShots === 0, '');
 } finally {
   console.log = logLines;
+  console.warn = warnLines;
   Date.now = realNow;
 }
 if (failed > 0) {
