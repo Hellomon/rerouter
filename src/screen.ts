@@ -7,6 +7,8 @@ export class Screen {
   private config: ScreenConfig;
   // what the image log saved since it last said so (see checkAndSaveScreenshots)
   private logSavedCount = 0;
+  private logThumbCount = 0;      // thumbnails saved since the last line, and the time that took
+  private logThumbMs = 0;
   private logSavedSince = 0;
   private logLastFile = '';
   // the still screen (trackStill): the small copy of the last screenshot, when it was taken, and the run of screenshots that were the same
@@ -211,8 +213,20 @@ export class Screen {
       folderPath = `${this.config.logScreenshotFolder}/${datePart}`;
     }
 
-    // quiet: not a line of the log for every picture
-    this.logLastFile = Utils.saveScreenshotToDisk(folderPath, 'log', true, image, DEFAULT_REROUTER_CONFIG.saveImageRoot, true);
+    // With a thumbnail the capture is used twice (saved whole, then made small): it is taken here, when the caller did not bring one, and released here.
+    const thumbnail = this.config.logScreenshotThumbnail;
+    const shot = image === undefined && thumbnail ? getScreenshot() : image;
+    try {
+      // quiet: not a line of the log for every picture
+      this.logLastFile = Utils.saveScreenshotToDisk(folderPath, 'log', true, shot, DEFAULT_REROUTER_CONFIG.saveImageRoot, true);
+      if (thumbnail && shot !== undefined) {
+        this.saveLogThumbnail(shot, this.logLastFile);
+      }
+    } finally {
+      if (shot !== image) {
+        releaseImage(shot);
+      }
+    }
     if (this.logSavedCount === 0) {
       this.logSavedSince = Date.now();
     }
@@ -221,14 +235,41 @@ export class Screen {
     if (Date.now() - this.config.logScreenshotLastCleanupTime > this.config.logScreenshotCleanupIntervalInSec * 1000) {
       this.config.logScreenshotLastCleanupTime = Date.now();
       // one line for all of them, when the old files are looked for
-      console.log(`Image log: ${this.logSavedCount} saved in ${Math.max(1, Math.round((Date.now() - this.logSavedSince) / 60000))} min, last ${this.logLastFile}`);
+      console.log(`Image log: ${this.logSavedCount} saved in ${Math.max(1, Math.round((Date.now() - this.logSavedSince) / 60000))} min, last ${this.logLastFile}` +
+        (this.logThumbCount > 0 ? `; thumbnails ${this.logThumbCount}, ${Math.round(this.logThumbMs / this.logThumbCount)} ms each` : ''));
       this.logSavedCount = 0;
+      this.logThumbCount = 0;
+      this.logThumbMs = 0;
       Utils.removeOldestFilesIfExceedsLimit(
         this.config.logScreenshotFolder,
         this.config.logScreenshotMaxFiles,
         this.config.logScreenshotMaxDays,
         DEFAULT_REROUTER_CONFIG.saveImageRoot
       );
+    }
+  }
+
+  /**
+   * The small copy of a picture of the image log, beside it: the same name with `.jpg`. It is for looking at (Tailmon pulls these first, and the whole picture
+   * when somebody asks for it), so it is a JPEG of a few KB. It never costs the picture: an error here is a warning.
+   */
+  private saveLogThumbnail(shot: Image, pngPath: string) {
+    const started = Date.now();
+    let thumb: Image | undefined;
+    try {
+      const { width, height } = getImageSize(shot);
+      const scale = Math.min(1, this.config.logScreenshotThumbnailSize / Math.max(width, height));
+      thumb = resizeImage(shot, Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale)));
+      // the quality is the third argument of saveImage (`.jpg` only); the declaration of this package knows two
+      (saveImage as (img: Image, path: string, quality?: number) => void)(thumb, pngPath.replace(/\.png$/, '.jpg'), this.config.logScreenshotThumbnailQuality);
+      this.logThumbCount++;
+      this.logThumbMs += Date.now() - started;
+    } catch (error: any) {
+      console.warn(`Warning in the thumbnail of the image log: ${error.message}`);
+    } finally {
+      if (thumb !== undefined) {
+        releaseImage(thumb);
+      }
     }
   }
 

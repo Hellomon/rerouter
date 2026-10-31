@@ -192,6 +192,9 @@ export interface ScreenConfig {
   logScreenshotCleanupIntervalInSec: number; // the old files are looked for this often, not at every save
   logScreenshotMaxDays: number; // maximum days to keep screenshot files, -1 to disable date-based cleanup and folder organization
   readonly logScreenshotFolder: string; // readonly property
+  logScreenshotThumbnail: boolean; // a small JPEG beside every picture of the image log (same name, `.jpg`), kept and deleted with it; the count of the pictures is not changed
+  logScreenshotThumbnailSize: number; // the long side of the thumbnail in pixels (240 makes 240x135 of a 1280x720 screen)
+  logScreenshotThumbnailQuality: number; // JPEG quality, 1 to 100
   trackStillScreen: boolean; // compare every screenshot the script takes with the one before it (and let checkScreenFrozen read that); off by default, off keeps the old frozen check
   logStillScreen: boolean; // write `SCR ...` lines about a screen that does not change (see Screen.trackStill); off by default
   stillScreenScore: number; // two screenshots with a getIdentityScore above this are the same screen

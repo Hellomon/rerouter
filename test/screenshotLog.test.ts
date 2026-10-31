@@ -35,7 +35,8 @@ g.saveImage = (image: any, path: string) => { if (failSaves > 0) { failSaves--; 
 g.execute = (cmd: string) => { shell.push(cmd); return ''; };
 
 function make(extra: object) {
-  return new Screen({ ...DEFAULT_SCREEN_CONFIG, logScreenshotFolder: 'dev1', logScreenshotMinIntervalInSec: 20, logScreenshotMaxFiles: 1000,
+  return new Screen({ ...DEFAULT_SCREEN_CONFIG, logScreenshotFolder: 'dev1', logScreenshotMinIntervalInSec: 20, logScreenshotMaxFiles: 1000, logScreenshotThumbnail: false,   // the pictures alone here; the thumbnails are in thumbnail.test.ts
+   
     devWidth: 640, devHeight: 360, screenWidth: 1280, screenHeight: 720, screenOffsetX: 0, screenOffsetY: 0, ...extra } as any);
 }
 
