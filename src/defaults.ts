@@ -41,6 +41,7 @@ export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
   logScreenshotCleanupIntervalInSec: 600,
   logScreenshotMaxDays: -1, // -1 to disable date-based cleanup and folder organization
   logScreenshotFolder: '',
+  trackStillScreen: false,
   logStillScreen: false,
   stillScreenScore: 0.999, // what checkScreenFrozen uses
   stillScreenMinSeconds: 6,

@@ -82,23 +82,22 @@ try {
 
   // ---- the frozen screen: the same comparison, with nothing written (logStillScreen is off), and what checkScreenFrozen reads
   said.length = 0; showing = 'A';
-  const watcher = new Screen({ ...DEFAULT_SCREEN_CONFIG, screenWidth: 640, screenHeight: 360, devWidth: 640, devHeight: 360 } as any);
-  watcher.trackFrozen = true;
+  const watcher = new Screen({ ...DEFAULT_SCREEN_CONFIG, screenWidth: 640, screenHeight: 360, devWidth: 640, devHeight: 360, trackStillScreen: true } as any);
   const seeW = (pic: string, afterSeconds: number) => { now += afterSeconds * 1000; showing = pic; watcher.getCvtDevScreenshot(); };
   seeW('A', 0); seeW('A', 4); seeW('A', 4);
-  check('compared with nothing written when only the frozen screen is watched', scr().length === 0 && watcher.getFrozenSeconds() === 8, `${scr().length} ${watcher.getFrozenSeconds()}`);
+  check('compared with nothing written when only trackStillScreen is on', scr().length === 0 && watcher.getFrozenSeconds() === 8, `${scr().length} ${watcher.getFrozenSeconds()}`);
   seeW('A', 100);                               // the script looked away for 100 s: the screen is the same as it was, the frozen time goes on
   check('a gap does not end a frozen screen (the screen is the same as the last time)', watcher.getFrozenSeconds() === 108, String(watcher.getFrozenSeconds()));
   seeW('B', 4);
   check('a change ends it', watcher.getFrozenSeconds() === 0, String(watcher.getFrozenSeconds()));
   const nobody = new Screen({ ...DEFAULT_SCREEN_CONFIG, screenWidth: 640, screenHeight: 360, devWidth: 640, devHeight: 360 } as any);
   thumbs = 0; now += 5000; nobody.getCvtDevScreenshot(); now += 5000; nobody.getCvtDevScreenshot();
-  check('nothing is compared when neither is on', thumbs === 0 && nobody.getFrozenSeconds() === 0, String(thumbs));
+  check('nothing is compared when neither trackStillScreen nor logStillScreen is on', thumbs === 0 && nobody.getFrozenSeconds() === 0, String(thumbs));
 
   // ---- Rerouter.checkScreenFrozen: no screenshot of its own, restarts after 10 minutes of the same screen
   let frozen = 0, stops = 0, captures = 0;
   const r = rerouter as any;
-  r.screen = { getFrozenSeconds: () => frozen, getCvtDevScreenshot: () => { captures++; } };
+  r.screen = { isTrackingStill: () => true, getFrozenSeconds: () => frozen, getCvtDevScreenshot: () => { captures++; } };
   r.stopEmulator = () => { stops++; };
   r.sendLog = () => true;
   r.screenFrozenTimes = 0;
@@ -117,6 +116,26 @@ try {
   frozen = 600; r.checkScreenFrozen();
   check('10 minutes: restart', stops === 1, String(stops));
   check('and it never took a screenshot of its own', captures === 0, String(captures));
+
+  // ---- with the switch off (the default) checkScreenFrozen is what it always was: once a minute a screenshot of its own, compared with the one before
+  let own = 0, legacyStops = 0;
+  r.screen = { isTrackingStill: () => false, getCvtDevScreenshot: () => { own++; return { pic: showing }; } };
+  r.stopEmulator = () => { legacyStops++; };
+  r.screenFrozenTimes = 0; r.lastScreenshotImage = null; r.lastCheckScreenFrozenTime = 0;
+  said.length = 0; showing = 'A';
+  const minute = () => { now += 61000; r.checkScreenFrozen(); };
+  r.checkScreenFrozen();
+  check('off: the first call takes the first screenshot', own === 1, String(own));
+  now += 30000; r.checkScreenFrozen();
+  check('off: not again before a minute', own === 1, String(own));
+  minute();
+  check('off: a minute later one more, compared, and the score is said', own === 2 && said.some(l => l.startsWith('checkScreenFrozen: score: 1')) && said.some(l => l === 'Screen is frozen, times 1'), said.join(' | '));
+  showing = 'B'; minute();
+  check('off: a change starts over', said[said.length - 1].startsWith('checkScreenFrozen: score: 0.2') && r.screenFrozenTimes === 0, said[said.length - 1]);
+  for (let i = 0; i < 9; i++) { minute(); }
+  check('off: 9 minutes of the same screen are not enough', legacyStops === 0 && r.screenFrozenTimes === 9, `${legacyStops} ${r.screenFrozenTimes}`);
+  minute();
+  check('off: the 10th restarts', legacyStops === 1, String(legacyStops));
 
   // an error of the monitor does not take the screenshot away
   g.getIdentityScore = () => { throw new Error('no such function'); };

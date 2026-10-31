@@ -11,8 +11,6 @@ export class Screen {
   private logLastFile = '';
   // the still screen (trackStill): the small copy of the last screenshot, when it was taken, and the run of screenshots that were the same
   private still = { thumb: null as Image | null, lastAt: 0, runStart: 0, runEnd: 0, frozenSince: 0, watchedMs: 0, frames: 0, lastBeat: 0, announced: false };
-  /** Rerouter sets it when it watches for a frozen screen (checkFrozenScreen): the screenshots are compared even when nothing is written (logStillScreen is off). */
-  public trackFrozen = false;
   /** The name of the task that runs now, for the `SCR` lines; Rerouter sets it. */
   public taskNameProvider: () => string = () => '-';
 
@@ -305,7 +303,7 @@ export class Screen {
    */
   private trackStill(image: Image) {
     const c = this.config;
-    if (!c.logStillScreen && !this.trackFrozen) {
+    if (!this.isTrackingStill()) {
       return;
     }
     const now = Date.now();
@@ -358,6 +356,11 @@ export class Screen {
       st.frames = 0;
       st.lastBeat = now;
     }
+  }
+
+  /** Is every screenshot compared with the one before (trackStillScreen, or logStillScreen which needs it)? */
+  public isTrackingStill(): boolean {
+    return this.config.trackStillScreen || this.config.logStillScreen;
   }
 
   /** How long the screen has not changed, in seconds, as of the last screenshot (0 when it changed, or when nothing is compared). */
