@@ -23,6 +23,8 @@ export class Rerouter {
   private routes: Required<RouteConfig>[] = [];
   private tasks: Required<Task>[] = [];
   private routeContext: RouteContext | null = null;
+  /** The name of the task that runs now, for the `SCR` lines of the still-screen log; with none, the task of the last route loop. */
+  public taskNameProvider: (() => string) | undefined = undefined;
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private beforeStartAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private afterStartAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
@@ -86,6 +88,7 @@ export class Rerouter {
 
     // new screen if screen config changed
     this.screen = new Screen(this.screenConfig);
+    this.screen.taskNameProvider = () => (this.taskNameProvider ? this.taskNameProvider() : this.routeContext ? this.routeContext.task.name : '-');
   }
 
   /**

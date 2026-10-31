@@ -9,6 +9,10 @@ export class Screen {
   private logSavedCount = 0;
   private logSavedSince = 0;
   private logLastFile = '';
+  // the still screen (trackStill): the small copy of the last screenshot, when it was taken, and the run of screenshots that were the same
+  private still = { thumb: null as Image | null, lastAt: 0, runStart: 0, runEnd: 0, watchedMs: 0, frames: 0, lastBeat: 0, announced: false };
+  /** The name of the task that runs now, for the `SCR` lines; Rerouter sets it. */
+  public taskNameProvider: () => string = () => '-';
 
   public constructor(config: ScreenConfig) {
     this.config = config;
@@ -233,6 +237,12 @@ export class Screen {
   }
 
   public getCvtDevScreenshot(): Image {
+    const image = this.captureCvtDevScreenshot();
+    this.trackStillSafely(image);
+    return image;
+  }
+
+  private captureCvtDevScreenshot(): Image {
     const c = this.config;
     if (!this.isLogScreenshotDue() || c.screenWidth <= 0 || c.screenHeight <= 0) {
       this.checkAndSaveScreenshots();
@@ -271,6 +281,89 @@ export class Screen {
     }
     return image;
   }
+
+  private trackStillSafely(image: Image) {
+    try {
+      this.trackStill(image);
+    } catch (error: any) {
+      // the monitor is never a reason to lose the screenshot the caller asked for
+      console.warn(`Warning in trackStill: ${error.message}`);
+    }
+  }
+
+  /**
+   * Is the screen changing? Every screenshot the script takes is compared with the one before it (both as a small picture, so it costs little) and
+   * what was seen is written to the log, for the monitor (Tailmon) to read without the pictures:
+   *
+   *   SCR ts=2026-10-31T05:38:25 task=pvp still=18 end=changed      a run of the same screen, 18 s long, has ended (end=ongoing: it goes on)
+   *   SCR ts=2026-10-31T05:39:25 task=pvp watch=60 frames=14        in the last 60 s 14 screenshots were compared (what was looked at)
+   *
+   * A run is from the first of the screenshots that were the same to the last of them, so it is a little shorter than the screen really stood
+   * still: the screenshots are a few seconds apart. Two screenshots more than MAX_STILL_GAP_MS apart are not compared (the script was not looking).
+   */
+  private trackStill(image: Image) {
+    const c = this.config;
+    if (!c.logStillScreen) {
+      return;
+    }
+    const now = Date.now();
+    const st = this.still;
+    const thumb = resizeImage(image, 160, 90);
+    if (!st.announced) {
+      st.announced = true;
+      st.lastBeat = now;
+      this.logStill(`on score=${c.stillScreenScore} min=${c.stillScreenMinSeconds} beat=${c.stillScreenHeartbeatSeconds}`);
+    }
+    if (st.thumb !== null) {
+      const gap = now - st.lastAt;
+      if (gap > Screen.MAX_STILL_GAP_MS) {
+        this.endStillRun('gap');
+      } else {
+        st.watchedMs += gap;
+        st.frames++;
+        if (getIdentityScore(thumb, st.thumb) > c.stillScreenScore) {
+          if (st.runStart === 0) {
+            st.runStart = st.lastAt;
+          }
+          st.runEnd = now;
+        } else {
+          this.endStillRun('changed');
+        }
+      }
+      releaseImage(st.thumb);
+    }
+    st.thumb = thumb;
+    st.lastAt = now;
+
+    if (now - st.lastBeat >= c.stillScreenHeartbeatSeconds * 1000) {
+      if (st.runStart !== 0 && st.runEnd - st.runStart >= c.stillScreenMinSeconds * 1000) {
+        this.logStill(`still=${Math.round((st.runEnd - st.runStart) / 1000)} end=ongoing`);
+      }
+      if (st.frames > 0) {
+        // nothing is said of a minute in which nothing was compared: that the line is not there is how the monitor knows it was not looked at
+        this.logStill(`watch=${Math.round(st.watchedMs / 1000)} frames=${st.frames}`);
+      }
+      st.watchedMs = 0;
+      st.frames = 0;
+      st.lastBeat = now;
+    }
+  }
+
+  private endStillRun(reason: string) {
+    const st = this.still;
+    if (st.runStart !== 0 && st.runEnd - st.runStart >= this.config.stillScreenMinSeconds * 1000) {
+      this.logStill(`still=${Math.round((st.runEnd - st.runStart) / 1000)} end=${reason}`);
+    }
+    st.runStart = 0;
+    st.runEnd = 0;
+  }
+
+  private logStill(fields: string) {
+    const stamp = Utils.timeLabel(overrideConsole.timezoneOffsetHour).replace(' ', 'T');
+    console.log(`SCR ts=${stamp} task=${this.taskNameProvider()} ${fields}`);
+  }
+
+  private static readonly MAX_STILL_GAP_MS = 30000;
 
   public getRotation(): 'vertical' | 'horizontal' {
     const { width, height } = getScreenSize();

@@ -41,6 +41,10 @@ export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
   logScreenshotCleanupIntervalInSec: 600,
   logScreenshotMaxDays: -1, // -1 to disable date-based cleanup and folder organization
   logScreenshotFolder: '',
+  logStillScreen: false,
+  stillScreenScore: 0.999, // what checkScreenFrozen uses
+  stillScreenMinSeconds: 6,
+  stillScreenHeartbeatSeconds: 60,
 };
 
 // NOTE: we should not use this config, but use rerouter.configValue instead
