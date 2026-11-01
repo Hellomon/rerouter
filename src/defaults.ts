@@ -42,7 +42,7 @@ export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
   logScreenshotMaxDays: -1, // -1 to disable date-based cleanup and folder organization
   logScreenshotFolder: '',
   logScreenshotThumbnail: true,
-  logScreenshotThumbnailSize: 240,
+  logScreenshotThumbnailSize: 160, // the long side in pixels: 160 is 160x90 of a 16:9 screen (about 3 KB), 240 is 240x135 (about 5 to 7 KB, the text on the screen is nearly readable)
   logScreenshotThumbnailQuality: 60,
   trackStillScreen: false,
   logStillScreen: false,

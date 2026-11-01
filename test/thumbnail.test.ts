@@ -49,14 +49,14 @@ const warned: string[] = [];
 console.log = (...args: any[]) => { said.push(args.join(' ')); };
 console.warn = (...args: any[]) => { warned.push(args.join(' ')); };
 try {
-  check('it is on by default, 240 on the long side, quality 60', DEFAULT_SCREEN_CONFIG.logScreenshotThumbnail === true && DEFAULT_SCREEN_CONFIG.logScreenshotThumbnailSize === 240 && DEFAULT_SCREEN_CONFIG.logScreenshotThumbnailQuality === 60, '');
+  check('it is on by default, 160 on the long side, quality 60', DEFAULT_SCREEN_CONFIG.logScreenshotThumbnail === true && DEFAULT_SCREEN_CONFIG.logScreenshotThumbnailSize === 160 && DEFAULT_SCREEN_CONFIG.logScreenshotThumbnailQuality === 60, '');
 
   // ---- a thumbnail beside every picture
   let screen = make();
   screen.getCvtDevScreenshot();
   check('one picture and one thumbnail', pngs().length === 1 && jpgs().length === 1, saved.map(s => s.path).join(' '));
   check('the thumbnail has the name of the picture, with .jpg', jpgs()[0].path === pngs()[0].path.replace(/\.png$/, '.jpg') && /dev1\/.*_log\.jpg$/.test(jpgs()[0].path), jpgs()[0].path);
-  check('240x135 of a 1280x720 screen, made from the whole capture', jpgs()[0].image.width === 240 && jpgs()[0].image.height === 135 && jpgs()[0].image.resized.full === 1, JSON.stringify(jpgs()[0].image).slice(0, 80));
+  check('160x90 of a 1280x720 screen, made from the whole capture', jpgs()[0].image.width === 160 && jpgs()[0].image.height === 90 && jpgs()[0].image.resized.full === 1, JSON.stringify(jpgs()[0].image).slice(0, 80));
   check('with the quality of the config', jpgs()[0].quality === 60, String(jpgs()[0].quality));
   check('the small image is released', released.includes(jpgs()[0].image), '');
 
@@ -66,16 +66,26 @@ try {
   now += 16000; screen.getCvtDevScreenshot();
   check('every picture gets one thumbnail, no more', pngs().length === 2 && jpgs().length === 2, '');
 
+  // ---- the option: 240 on the long side is 240x135
+  saved.length = 0;
+  screen = make({ logScreenshotThumbnailSize: 240 });
+  screen.getCvtDevScreenshot();
+  check('the option 240 gives 240x135', jpgs().length === 1 && jpgs()[0].image.width === 240 && jpgs()[0].image.height === 135, JSON.stringify(jpgs()[0] && jpgs()[0].image).slice(0, 80));
+  saved.length = 0;
+  screen = make({ logScreenshotThumbnailSize: 2000 });
+  screen.getCvtDevScreenshot();
+  check('a size larger than the screen keeps the size of the screen', jpgs()[0].image.width === 1280 && jpgs()[0].image.height === 720, '');
+
   // ---- a screen that is upright: the long side is the height
   deviceSize = { width: 360, height: 640 }; saved.length = 0;
   screen = make({ screenWidth: 360, screenHeight: 640, devWidth: 360, devHeight: 640 });
   screen.getCvtDevScreenshot();
-  check('135x240 of a 360x640 screen', jpgs().length === 1 && jpgs()[0].image.width === 135 && jpgs()[0].image.height === 240, JSON.stringify(jpgs()[0] && jpgs()[0].image).slice(0, 80));
+  check('90x160 of a 360x640 screen', jpgs().length === 1 && jpgs()[0].image.width === 90 && jpgs()[0].image.height === 160, JSON.stringify(jpgs()[0] && jpgs()[0].image).slice(0, 80));
   // a screen smaller than the size is not made bigger
-  deviceSize = { width: 200, height: 100 }; saved.length = 0;
-  screen = make({ screenWidth: 200, screenHeight: 100, devWidth: 200, devHeight: 100 });
+  deviceSize = { width: 120, height: 60 }; saved.length = 0;
+  screen = make({ screenWidth: 120, screenHeight: 60, devWidth: 120, devHeight: 60 });
   screen.getCvtDevScreenshot();
-  check('a small screen keeps its size', jpgs()[0].image.width === 200 && jpgs()[0].image.height === 100, '');
+  check('a small screen keeps its size', jpgs()[0].image.width === 120 && jpgs()[0].image.height === 60, '');
   deviceSize = { width: 1280, height: 720 };
 
   // ---- the old way of calling it, with no image: the capture is taken here, once, and released here
