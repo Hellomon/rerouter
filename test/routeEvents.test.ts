@@ -30,7 +30,7 @@ const r = rerouter as any;
 r.rerouterConfig.checkFrozenScreen = false;
 r.rerouterConfig.autoLaunchApp = false;
 let lastImage: any = { name: '2026-11-02T00.00.01_log', ageMs: 400 };
-r.screen = { getRotation: () => 'vertical', getCvtDevScreenshot: () => ({}), getLastLogImage: () => lastImage };
+r.screen = { getRotation: () => 'vertical', getCvtDevScreenshot: () => ({}), getLastLogImage: () => lastImage, isTrackingStill: () => false, getFrozenSeconds: () => 0, taskNameProvider: () => 'pvp' };
 r.findMatchedRouteImpl = () => {
   const path = frames[frame++];
   return path === null ? [] : [{ matchedRoute: { path }, matchedPages: [{ name: 'page' + path.replace('/', '') }] }];
@@ -196,6 +196,43 @@ r.unknownEntries = {};
 kept.length = 0;
 r.startRouteLoop(task);
 check('off: nothing is kept', kept.length === 0);
+
+// stay says whether the screen was changing (the script is working) or frozen
+r.screen.isTrackingStill = () => true;
+let frozenFor = 0;
+r.screen.getFrozenSeconds = () => frozenFor;
+frozenFor = 58;
+stays = stay({ pin: false, events: true }, 14);
+check('the stay says how long the screen has not changed', stays.length === 1 && stays[0].still === 58, JSON.stringify(stays));
+frozenFor = 0;
+stays = stay({ pin: false, events: true }, 14);
+check('a screen that is changing: still 0', stays[0].still === 0);
+r.screen.isTrackingStill = () => false;
+stays = stay({ pin: false, events: true }, 14);
+check('not tracked: no still field', stays[0].still === undefined);
+r.rerouterConfig.eventLog = true;
+
+// restart: the reason goes into the event; a caller that gives none changes nothing
+r.doStopApp = () => {};
+r.startApp = () => {};
+r.stopEmulatorReal = r.stopEmulator;
+const execd: string[] = [];
+g.execute = (c: string) => { execd.push(c); return ''; };
+printed.length = 0;
+r.restartApp('battle-hang');
+r.restartApp();
+r.stopApp(3, 0, 'license-out');
+r.stopApp();
+r.stopEmulator('screen-frozen');
+r.stopEmulator();
+const restarts = events().filter((e: any) => e.e === 'restart');
+check('restarts with a reason say it', restarts.map((e: any) => e.reason + ':' + e.how).join(',') === 'battle-hang:restart,unspecified:restart,license-out:stop,screen-frozen:reboot', restarts.map((e: any) => e.reason + ':' + e.how).join(','));
+check('stopApp and stopEmulator without a reason write nothing, and still do what they did', restarts.length === 4 && execd.filter(c => c === 'reboot -p').length === 2, String(execd.length));
+r.rerouterConfig.eventLog = false;
+printed.length = 0;
+r.restartApp('x');
+check('eventLog off: no event line', events().length === 0);
+r.rerouterConfig.eventLog = true;
 
 // task_end: cut off at its time limit by the time that really passed
 r.rerouterConfig.eventLog = true;

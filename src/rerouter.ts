@@ -4,7 +4,7 @@ import { Utils } from './utils';
 import { updateGameStatus as xrUpdateGameStatus, sendActivityLog as xrSendActivityLog, sendLog as xrSendLog } from './xr';
 
 import { overrideConsole } from './overrides';
-import { logEvent, setEventTaskProvider } from './eventLog';
+import { setEventRouteProvider, setEventTaskProvider, writeEvent } from './eventLog';
 import { DEFAULT_REROUTER_CONFIG, DEFAULT_SCREEN_CONFIG, DEFAULT_CONFIG_VALUE, defaultHandleConflictRoutes } from './defaults';
 
 import 'core-js/es/object/assign';
@@ -96,6 +96,7 @@ export class Rerouter {
     this.screen = new Screen(this.screenConfig);
     this.screen.taskNameProvider = () => (this.taskNameProvider ? this.taskNameProvider() : this.routeContext ? this.routeContext.task.name : '-');
     setEventTaskProvider(this.screen.taskNameProvider);
+    setEventRouteProvider(() => (this.routeContext ? this.routeContext.path : ''));
   }
 
   /**
@@ -265,7 +266,15 @@ export class Rerouter {
 
     this.log('startApp: done');
   }
-  public stopApp(maxRetries: number = 3, retryDelay: number = 3000): void {
+  /** `reason` (new, optional): with it the monitor gets a `restart` event that says why; without it nothing changes for a caller that does not give one. */
+  public stopApp(maxRetries: number = 3, retryDelay: number = 3000, reason?: string): void {
+    if (reason !== undefined) {
+      this.restartEvent(reason, 'stop');
+    }
+    this.doStopApp(maxRetries, retryDelay);
+  }
+
+  private doStopApp(maxRetries: number, retryDelay: number): void {
     this.log('stopApp: start');
 
     if (!this.rerouterConfig.packageName) {
@@ -291,13 +300,23 @@ export class Rerouter {
     this.log('stopApp: done');
   }
 
-  public stopEmulator(): void {
+  public stopEmulator(reason?: string): void {
+    if (reason !== undefined) {
+      this.restartEvent(reason, 'reboot');
+    }
     execute('reboot -p');
   }
 
-  public restartApp(): void {
-    this.stopApp();
+  /** `reason` (new, optional): the `restart` event says why (a caller that gives none has `unspecified`, and nothing else changes for it). */
+  public restartApp(reason?: string): void {
+    this.restartEvent(reason === undefined ? 'unspecified' : reason, 'restart');
+    this.doStopApp(3, 3000);
     this.startApp();
+  }
+
+  /** the `restart` event: the game was stopped, started again, or the emulator was rebooted, and why (only with `eventLog`) */
+  private restartEvent(reason: string, how: 'restart' | 'stop' | 'start' | 'reboot'): void {
+    this.event('restart', this.screen ? this.screen.taskNameProvider() : '-', { reason: reason, how: how });
   }
 
   /**
@@ -622,6 +641,7 @@ export class Rerouter {
           }
 
           // Start the app
+          this.restartEvent('app-not-running', 'start');
           this.startApp();
 
           // Execute after start app action
@@ -854,7 +874,7 @@ export class Rerouter {
     }
     if (this.routeConflictRecord.length >= countsLimit) {
       this.routeConflictRecord = [now];
-      this.restartApp();
+      this.restartApp('route-conflict');
       return;
     }
 
@@ -1034,6 +1054,9 @@ export class Rerouter {
       times: context.matchTimes,
       pages: (pages || []).map(page => page.name).join(','),
     };
+    if (this.screen.isTrackingStill()) {
+      fields.still = Math.round(this.screen.getFrozenSeconds()); // seconds the screen has not changed: 0 is a screen that is changing (the script is working), as long as the stay is a screen that is frozen
+    }
     if (pinned) {
       fields.img = pinned.name;
       fields.pin = pinned.same ? 'same' : 'new';
@@ -1077,7 +1100,7 @@ export class Rerouter {
         all.img_ms = image.ageMs;
       }
     }
-    logEvent(name, all);
+    writeEvent(name, all);
   }
 
   private warning(...args: any[]): void {
@@ -1199,7 +1222,7 @@ export class Rerouter {
       console.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
       releaseImage(this.lastScreenshotImage);
       this.sendLog('Rerouter', 'info', 'ScreenFrozen', 'Screen is frozen for more than 10 times (minutes), restarting emulator...');
-      this.stopEmulator();
+      this.stopEmulator('screen-frozen');
     }
   }
 
@@ -1215,7 +1238,7 @@ export class Rerouter {
     if (this.screenFrozenTimes >= 10) {
       console.log(`Screen is frozen for more than 10 times (minutes), restarting app... ${this.screenFrozenTimes}`);
       this.sendLog('Rerouter', 'info', 'ScreenFrozen', 'Screen is frozen for more than 10 times (minutes), restarting emulator...');
-      this.stopEmulator();
+      this.stopEmulator('screen-frozen');
     }
   }
 }

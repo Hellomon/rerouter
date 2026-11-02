@@ -13,7 +13,7 @@ const realLog = console.log;
 console.log = (...args: any[]) => {
   printed.push(args.join(' '));
 };
-const { formatEvent, logEvent, setEventTaskProvider, EVENT_MAX_CHARS } = require('../src/eventLog');
+const { formatEvent, logEvent, writeEvent, setEventTaskProvider, setEventRouteProvider, EVENT_MAX_CHARS } = require('../src/eventLog');
 const { overrideConsole } = require('../src/overrides');
 const defaults = require('../src/defaults');
 
@@ -54,6 +54,23 @@ check('a name that is too long alone still gives valid JSON', line.length <= EVE
 line = formatEvent('short', { a: 1 });
 check('a short line has no trunc', parse(line).trunc === undefined);
 check('the limit can be given', formatEvent('x', { text: long }, undefined, 5000).indexOf('trunc') < 0);
+
+// the route: put in for what a script writes (logEvent), not for the events of Rerouter itself, and never over a route that the caller gives
+setEventTaskProvider(() => 'pvp');
+setEventRouteProvider(() => '/rfpageInProduction');
+printed.length = 0;
+logEvent('trouble', { what: 'no slot' });
+writeEvent('stay', { path: '/a' });
+logEvent('trouble', { what: 'x', route: '/mine' });
+setEventRouteProvider(() => '');
+logEvent('trouble', { what: 'y' });
+const lines = printed.filter(l => l.indexOf('@ev ') === 0).map(l => JSON.parse(l.substring(4)));
+check('a script event has the task and the route that matches now', lines[0].task === 'pvp' && lines[0].route === '/rfpageInProduction' && lines[0].what === 'no slot', JSON.stringify(lines[0]));
+check('an event of Rerouter has no route of the context', lines[1].route === undefined && lines[1].path === '/a', JSON.stringify(lines[1]));
+check('the route of the caller wins', lines[2].route === '/mine');
+check('no route that matches: no route field', lines[3].route === undefined);
+check('formatEvent without the flag has no route', JSON.parse((setEventRouteProvider(() => '/r'), formatEvent('x')).substring(4)).route === undefined);
+setEventRouteProvider(undefined);
 
 // what is printed: no time header, no level, no cut at 1000, with the console overridden too
 overrideConsole.doOverrideGlobalConsole(true);

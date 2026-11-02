@@ -17,10 +17,16 @@ export const EVENT_MAX_CHARS = 800;
 const LONG_VALUE_CHARS = 80;
 
 let taskProvider: (() => string) | undefined;
+let routeProvider: (() => string) | undefined;
 
 /** where `task` comes from when the caller does not give one (Rerouter sets it to the task that runs) */
 export function setEventTaskProvider(provider: (() => string) | undefined): void {
   taskProvider = provider;
+}
+
+/** where `route` comes from for the events that a script writes with logEvent (Rerouter sets it to the route that matches now; '' when none does) */
+export function setEventRouteProvider(provider: (() => string) | undefined): void {
+  routeProvider = provider;
 }
 
 function toLine(body: { [key: string]: any }): string {
@@ -28,11 +34,17 @@ function toLine(body: { [key: string]: any }): string {
 }
 
 /** the line of an event, within EVENT_MAX_CHARS (pure: nothing is printed) */
-export function formatEvent(name: string, fields?: EventFields, task?: string, maxChars?: number): string {
+export function formatEvent(name: string, fields?: EventFields, task?: string, maxChars?: number, withRoute: boolean = false): string {
   const limit = maxChars || EVENT_MAX_CHARS;
   const body: { [key: string]: any } = { v: EVENT_VERSION, e: name };
   const given = fields || {};
   body.task = given.task !== undefined && given.task !== null ? String(given.task) : task !== undefined ? task : taskProvider ? taskProvider() : '-';
+  if (withRoute && given.route === undefined && routeProvider) {
+    const route = routeProvider();
+    if (route) {
+      body.route = route;
+    }
+  }
   const keys = Object.keys(given).filter(function (k) {
     return k !== 'task' && k !== 'v' && k !== 'e' && given[k] !== undefined;
   });
@@ -65,7 +77,16 @@ export function formatEvent(name: string, fields?: EventFields, task?: string, m
   return line;
 }
 
-/** Say that something happened, as a line for the monitor. Does not depend on any setting: whoever calls it wants the line. */
+/**
+ * Say something that only the script knows (a difficulty it met, what it achieved), as a line for the monitor. The task and the route that matches now are put in by Rerouter, and the
+ * time is the time of the line: the monitor puts it together with what Rerouter saw (where the script was, for how long) without the script saying where it is.
+ * Does not depend on any setting: whoever calls it wants the line.
+ */
 export function logEvent(name: string, fields?: EventFields): void {
+  plainLog(formatEvent(name, fields, undefined, undefined, true));
+}
+
+/** The line of an event of Rerouter itself (no `route`: its events say their own `path`). */
+export function writeEvent(name: string, fields?: EventFields): void {
   plainLog(formatEvent(name, fields));
 }
