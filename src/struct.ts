@@ -219,6 +219,13 @@ export interface RerouterConfig {
   strictMode: boolean;
   checkFrozenScreen: boolean; // enable/disable screen frozen detection
   debugSlackUrl: string;
+  /**
+   * What Rerouter itself finds odd (an `odd` event, level yellow, with `why`), for the monitor: nobody has to know these rules to write a script. They are in one place so that they can be
+   * tuned when yellow shows too often. unknownSec: a screen no route matches for this long; frozenSec: a route that matches while the screen has not changed for this long;
+   * noEffectActions: a route that stays and whose action was called this many times, each one short, without the route changing; loopCount: the same way round in one round of a task
+   * (and again at twice that, four times ...). 0 turns a rule off.
+   */
+  oddRules: { unknownSec: number; frozenSec: number; noEffectActions: number; loopCount: number };
   eventLog: boolean; // if true, Rerouter itself writes event lines (`@ev {...}`, see logEvent) for the monitor; off by default. logEvent() called by a script always writes
   logger: {
     overrideGlobalConsole: boolean; // if true, this will override global console among all modules

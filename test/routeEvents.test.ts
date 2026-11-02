@@ -105,7 +105,7 @@ r.pinStage = 0;
 r.unknownEntries = {};
 printed.length = 0;
 r.startRouteLoop(task);
-const pins = events().filter((e: any) => e.pin);
+const pins = events().filter((e: any) => e.e === 'unknown' && e.pin);
 check('kept at 15 s and at 60 s, once each', kept.length === 2 && pins.map((e: any) => e.n + ':' + e.ms).join(',') === '4:15000,13:60000', pins.map((e: any) => e.n + ':' + e.ms).join(','));
 check('the event says the kept picture and whether it was new', pins[0].img === 'p1_stuck' && pins[0].pin === 'new' && pins[0].img_ms === undefined && pins[1].pin === 'same', JSON.stringify(pins));
 
@@ -136,7 +136,7 @@ r.unknownEntries = {};
 kept.length = 0;
 printed.length = 0;
 r.startRouteLoop(task);
-const circle = events().filter((e: any) => e.pin);
+const circle = events().filter((e: any) => e.e === 'unknown' && e.pin);
 check('the third and the fourth time round, the unknown screen is kept at 5 s', kept.length === 2 && circle.map((e: any) => e.ms).join(',') === '5000,5000', circle.map((e: any) => e.n + ':' + e.ms).join(','));
 check('the first two times it is not (10 s is less than 15 s)', circle.length === 2);
 
@@ -233,6 +233,73 @@ printed.length = 0;
 r.restartApp('x');
 check('eventLog off: no event line', events().length === 0);
 r.rerouterConfig.eventLog = true;
+
+// the odd rules: Rerouter says yellow by itself
+const realDoAction = Object.getPrototypeOf(r).doActionForRoute;
+function odds(frames_: (string | null)[], setup: () => void = () => {}) {
+  r.rerouterConfig.eventLog = true; r.screenConfig.stuckScreenshot = false;
+  frames.length = 0; frames_.forEach(f => frames.push(f)); frame = 0;
+  r.routeContext = null; r.lastRealPath = ''; r.pinStage = 0; r.stayStage = 0; r.unknownEntries = {}; r.transitions = {}; r.unknownExpectedStretch = false; r.oddUnknownTold = false;
+  r.stayActions = 0; r.stayActionMs = 0;
+  setup(); printed.length = 0;
+  r.startRouteLoop(task);
+  return events().filter((e: any) => e.e === 'odd');
+}
+r.screen.isTrackingStill = () => true;
+// a frozen screen on a route that matches
+frozenFor = 75;
+let odd = odds([...Array(14).fill('/a'), '/b']);
+check('a route that stays 60 s on a frozen screen is odd: frozen, yellow', odd.length === 1 && odd[0].why === 'frozen' && odd[0].level === 'yellow' && odd[0].path === '/a' && odd[0].still === 75, JSON.stringify(odd));
+frozenFor = 0;
+odd = odds([...Array(14).fill('/a'), '/b']);
+check('a screen that is changing is not odd (the script is working)', odd.length === 0, JSON.stringify(odd));
+// the action is called again and again, each one short, the route does not change: the real action code counts and times it
+r.doActionForRoute = function (context: any, image: any, route: any, pages: any, finishRound: any) {
+  realDoAction.call(r, context, image, route, pages, finishRound);
+  if (frame >= frames.length) { finishRound(false); }
+};
+frames.length = 0;
+const quick = { action: () => { now += 100; }, shouldMatchTimes: 0, shouldMatchDuring: 0, beforeRoute: null, afterRoute: null, beforeActionDelay: 0, afterActionDelay: 0, debug: false, match: null };
+r.findMatchedRouteImpl = () => {
+  const path = frames[frame++];
+  return path === null ? [] : [{ matchedRoute: Object.assign({ path }, quick), matchedPages: [{ name: 'p' }] }];
+};
+odd = odds([...Array(14).fill('/a'), '/b']);
+check('the action called 13 times, each one short, and the route does not change: odd, no-effect', odd.length === 1 && odd[0].why === 'no-effect' && odd[0].actions >= 10 && odd[0].action_ms < odd[0].ms / 2, JSON.stringify(odd));
+const slow = Object.assign({}, quick, { action: () => { now += 9000; } });
+r.findMatchedRouteImpl = () => {
+  const path = frames[frame++];
+  return path === null ? [] : [{ matchedRoute: Object.assign({ path }, slow), matchedPages: [{ name: 'p' }] }];
+};
+odd = odds([...Array(14).fill('/a'), '/b']);
+const stay1 = events().filter((e: any) => e.e === 'stay');
+check('an action that takes most of the time (the script is working inside it) is not odd, and the stay says so', odd.length === 0 && stay1.length === 1 && stay1[0].action_ms > stay1[0].ms / 2, JSON.stringify(stay1));
+r.doActionForRoute = function (context: any, image: any, route: any, pages: any, finishRound: any) { if (frame >= frames.length) { finishRound(false); } };
+r.findMatchedRouteImpl = () => {
+  const path = frames[frame++];
+  return path === null ? [] : [{ matchedRoute: { path }, matchedPages: [{ name: 'page' + path.replace('/', '') }] }];
+};
+r.screen.isTrackingStill = () => false;
+// a long unknown screen, once per stretch; not for a fight
+r.unknownRouteAction = () => {};
+odd = odds([...Array(8).fill(null), '/b']);
+check('a screen that no route matches for 15 s is odd once: unknown-long', odd.length === 1 && odd[0].why === 'unknown-long' && odd[0].ms >= 15000 && odd[0].level === 'yellow', JSON.stringify(odd));
+odd = odds([...Array(8).fill(null), '/b'], () => { r.unknownRouteAction = () => { r.markUnknownExpected('battle'); }; });
+check('a fight that the action says is expected is not odd', odd.length === 0, JSON.stringify(odd));
+r.unknownRouteAction = () => {};
+// a loop: the same way round, in one round of a task
+odd = odds(['/a', '/b', '/a', '/b', '/a', '/b', '/a', '/b', '/a', '/b', '/a', '/b', '/a', '/b']);
+const ab = odd.filter((e: any) => e.from === '/a' && e.to === '/b');
+check('the same way round 3 times is odd: loop, and again at 6', ab.map((e: any) => e.count).join(',') === '3,6' && ab[0].via === 'route' && ab[0].why === 'loop', JSON.stringify(ab));
+odd = odds(['/a', null, '/a', null, '/a', null, '/a']);
+check('a / unknown / a: a loop through an unknown screen', odd.some((e: any) => e.why === 'loop' && e.via === 'unknown' && e.from === '/a' && e.to === '/a' && e.count === 3), JSON.stringify(odd));
+odd = odds(['/a', null, '/a', null, '/a', null, '/a'], () => { r.unknownRouteAction = () => { r.markUnknownExpected('battle'); }; });
+check('the same through a fight is not odd', odd.filter((e: any) => e.why === 'loop').length === 0, JSON.stringify(odd));
+r.unknownRouteAction = () => {};
+r.rerouterConfig.oddRules = { unknownSec: 0, frozenSec: 0, noEffectActions: 0, loopCount: 0 };
+odd = odds(['/a', '/b', '/a', '/b', '/a', '/b', '/a'].concat(Array(8).fill(null) as any, ['/b']));
+check('a rule that is 0 is off', odd.length === 0, JSON.stringify(odd));
+r.rerouterConfig.oddRules = { unknownSec: 15, frozenSec: 60, noEffectActions: 10, loopCount: 3 };
 
 // task_end: cut off at its time limit by the time that really passed
 r.rerouterConfig.eventLog = true;
