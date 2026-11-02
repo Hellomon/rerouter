@@ -26,6 +26,7 @@ export class Rerouter {
   private routeContext: RouteContext | null = null;
   /** The name of the task that runs now, for the `SCR` lines of the still-screen log; with none, the task of the last route loop. */
   public taskNameProvider: (() => string) | undefined = undefined;
+  private unknownReason = ''; // set by markUnknownExpected during the action of an unknown step
   private unknownEntries: { [route: string]: number } = {}; // in this round of the task: how many times the unknown screen was entered from each route
   private stayStage = 0; // the same for a route that matches and stays (checkStay)
   private pinStage = 0; // how many of the moments of an unknown stretch (stuckAfterSec and 4, 20, 60, 240 times that) have kept the screen; a route that matches starts again
@@ -513,7 +514,6 @@ export class Rerouter {
       task.runTimes = 0;
       let exitTask = false;
       this.event('task_start', task.name, { max: task.config.maxTaskDuring > 0 ? Math.round(task.config.maxTaskDuring / 1000) : undefined });
-      let cutOff = false;
       this.unknownEntries = {};
 
       // Execute global beforeTask callback if defined
@@ -555,7 +555,6 @@ export class Rerouter {
         const during = now - task.startTime;
         if (task.config.maxTaskDuring > 0 && during >= task.config.maxTaskDuring) {
           this.log(`Task: ${task.name} taskDuring: ${during}/${task.config.maxTaskDuring} reached, stop`);
-          cutOff = true;
           break;
         }
       }
@@ -570,7 +569,9 @@ export class Rerouter {
         }
       }
 
-      this.event('task_end', task.name, { ms: Date.now() - now, runs: task.runTimes, reason: cutOff ? 'timeout' : 'done' });
+      // cut off at its time limit: by the time that really passed (the check in the loop above reads `now` of the start of the task, and the AutoStop of the route loop leaves no trace)
+      const elapsed = Date.now() - now;
+      this.event('task_end', task.name, { ms: elapsed, runs: task.runTimes, reason: task.config.maxTaskDuring > 0 && elapsed >= task.config.maxTaskDuring ? 'timeout' : 'done' });
       Utils.sleep(this.rerouterConfig.taskDelay);
     }
   }
@@ -666,20 +667,15 @@ export class Rerouter {
 
       if (matches.length === 0) {
         // no match
-        // a screen that stays unknown goes on for hours: the first steps are told one by one, then every tenth (the next route says how long it was)
         if (context.matchTimes === 1) {
           this.unknownEntries[this.lastRealPath] = (this.unknownEntries[this.lastRealPath] || 0) + 1;
         }
-        const pinned = this.pinStuck(context.matchDuring, image, this.unknownEntries[this.lastRealPath] || 0);
-        if (pinned) {
-          // the picture to look at is the one that was kept at this moment, not the nearest of the image log
-          this.event('unknown', task.name, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath, img: pinned.name, pin: pinned.same ? 'same' : 'new' }, true);
-        } else if (context.matchTimes <= 5 || context.matchTimes % 10 === 0) {
-          this.event('unknown', task.name, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath }, true);
-        }
+        this.unknownReason = '';
         if (this.unknownRouteAction !== null) {
           this.unknownRouteAction(context, image, finishRoundFunc);
         }
+        // after the action: it may have said that this unknown screen is expected (markUnknownExpected)
+        this.tellUnknown(task.name, context, image);
       } else if (matches.length === 1) {
         this.checkStay(task.name, context, image, matchedPages);
         // single match with highest priority
@@ -985,6 +981,33 @@ export class Rerouter {
     }
     // only log when debug + this.debug is true
     console.log('[Rerouter][debug]', ...args);
+  }
+
+  /**
+   * For the action of an unknown step (addUnknownAction): this screen is not a page that is missing, it is what the task expects to see (`reason`: 'battle', a fight that no route
+   * matches). The `unknown` event of the step says `expected` and the screen is not kept, so the monitor does not count it as stuck. It is for this step only.
+   */
+  public markUnknownExpected(reason: string): void {
+    this.unknownReason = reason;
+  }
+
+  /** the `unknown` event of a step, and the screen kept at the moments of a long stretch: not for a screen that the action said is expected, and the moments that are passed then are kept for later */
+  private tellUnknown(task: string, context: RouteContext, image: Image): void {
+    // a screen that stays unknown goes on for hours: the first steps are told one by one, then every tenth (the next route says how long it was)
+    const thinned = context.matchTimes <= 5 || context.matchTimes % 10 === 0;
+    if (this.unknownReason) {
+      if (thinned) {
+        this.event('unknown', task, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath, expected: this.unknownReason }, true);
+      }
+      return;
+    }
+    const pinned = this.pinStuck(context.matchDuring, image, this.unknownEntries[this.lastRealPath] || 0);
+    if (pinned) {
+      // the picture to look at is the one that was kept at this moment, not the nearest of the image log
+      this.event('unknown', task, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath, img: pinned.name, pin: pinned.same ? 'same' : 'new' }, true);
+    } else if (thinned) {
+      this.event('unknown', task, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath }, true);
+    }
   }
 
   /**

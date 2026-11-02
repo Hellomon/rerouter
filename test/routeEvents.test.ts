@@ -164,6 +164,26 @@ stays = stay({ pin: false, events: false }, 14);
 check('with neither, nothing at all (the ordinary machines)', stays.length === 0 && kept.length === 0);
 r.rerouterConfig.eventLog = true;
 
+// an unknown screen that the action says is expected (a fight): told as expected, not kept; when it stops being expected the moments that were passed are kept at once
+r.screenConfig.stuckScreenshot = true;
+r.rerouterConfig.eventLog = true;
+let fighting = true;
+r.unknownRouteAction = () => { if (fighting) { r.markUnknownExpected('battle'); } };
+frames.length = 0;
+for (let i = 0; i < 12; i++) { frames.push(null); }
+frames.push('/c');
+frame = 0; r.routeContext = null; r.lastRealPath = '/a'; r.pinStage = 0; r.unknownEntries = {};
+kept.length = 0; printed.length = 0;
+const stepBack = r.unknownRouteAction;
+let step = 0;
+r.unknownRouteAction = () => { step++; fighting = step <= 8; stepBack(); };       // a fight for 8 steps (35 s), then it is no fight
+r.startRouteLoop(task);
+const fight = events().filter((e: any) => e.e === 'unknown');
+check('a fight: told as expected, the first five steps, nothing kept', fight.slice(0, 5).every((e: any) => e.expected === 'battle' && e.pin === undefined) && fight.slice(0, 5).map((e: any) => e.n).join(',') === '1,2,3,4,5', fight.map((e: any) => e.n + (e.expected ? 'e' : '') + (e.pin ? 'p' : '')).join(','));
+check('when it is no fight any more, the screen is kept at once (the moments passed), once', kept.length === 1 && fight.filter((e: any) => e.pin).length === 1 && fight.filter((e: any) => e.pin)[0].n === 9, kept.length + ' ' + fight.map((e: any) => e.n + (e.expected ? 'e' : '') + (e.pin ? 'p' : '')).join(','));
+r.unknownRouteAction = () => {};
+r.screenConfig.stuckScreenshot = true;
+
 // off: nothing is kept
 r.screenConfig.stuckScreenshot = false;
 frames.length = 0;
@@ -176,6 +196,23 @@ r.unknownEntries = {};
 kept.length = 0;
 r.startRouteLoop(task);
 check('off: nothing is kept', kept.length === 0);
+
+// task_end: cut off at its time limit by the time that really passed
+r.rerouterConfig.eventLog = true;
+function round(maxMs: number, spendMs: number) {
+  const t: any = { name: 'pvp', lastRunTime: 0, startTime: 0, runTimes: 0, config: { minRoundInterval: 0, maxTaskRunTimes: 1, maxTaskDuring: maxMs, beforeTask: null, afterTask: null, findRouteDelay: 0 } };
+  r.tasks = [t]; r.globalBeforeTaskAction = null; r.globalAfterTaskAction = null; r.rerouterConfig.taskDelay = 0;
+  r.startRouteLoop = () => { now += spendMs; r.running = false; return false; };
+  r.running = true; printed.length = 0;
+  r.startTaskLoop();
+  return events().filter((e: any) => e.e === 'task_start' || e.e === 'task_end');
+}
+let marks = round(180000, 186000);
+check('a task that took 186 s of the 180 s it may take is cut off', marks[0].e === 'task_start' && marks[0].max === 180 && marks[1].e === 'task_end' && marks[1].reason === 'timeout' && marks[1].ms === 186000, JSON.stringify(marks));
+marks = round(180000, 60000);
+check('a task that took 60 s of 180 s is done', marks[1].reason === 'done' && marks[1].ms === 60000, JSON.stringify(marks));
+marks = round(0, 60000);
+check('no limit: done', marks[1].reason === 'done' && marks[0].max === undefined, JSON.stringify(marks));
 
 console.log = realLog;
 process.stdout.write(failed ? failed + ' failed\n' : 'route events passed\n');
