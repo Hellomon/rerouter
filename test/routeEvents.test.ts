@@ -267,8 +267,16 @@ r.findMatchedRouteImpl = () => {
   const path = frames[frame++];
   return path === null ? [] : [{ matchedRoute: Object.assign({ path }, quick), matchedPages: [{ name: 'p' }] }];
 };
+frozenFor = 20;
 odd = odds([...Array(14).fill('/a'), '/b']);
-check('the action called 13 times, each one short, and the route does not change: odd, no-effect', odd.length === 1 && odd[0].why === 'no-effect' && odd[0].actions >= 10 && odd[0].action_ms < odd[0].ms / 2, JSON.stringify(odd));
+check('the action called 13 times, each one short, the route does not change, the screen stands still: odd, no-effect', odd.length === 1 && odd[0].why === 'no-effect' && odd[0].actions >= 10 && odd[0].action_ms < odd[0].ms / 2, JSON.stringify(odd));
+frozenFor = 0;
+odd = odds([...Array(14).fill('/a'), '/b']);
+check('the same, but the screen keeps changing (a shop that sells, taps that work): not odd', odd.length === 0, JSON.stringify(odd));
+r.screen.isTrackingStill = () => false;
+odd = odds([...Array(14).fill('/a'), '/b']);
+check('the screen not tracked: as before, odd', odd.length === 1 && odd[0].why === 'no-effect', JSON.stringify(odd));
+r.screen.isTrackingStill = () => true;
 const slow = Object.assign({}, quick, { action: () => { now += 9000; } });
 r.findMatchedRouteImpl = () => {
   const path = frames[frame++];
@@ -296,7 +304,7 @@ stillNow = 20;
 odd = odds([...Array(8).fill(null), '/b']);
 check('the same screen standing still is odd: unknown-long', odd.length === 1 && odd[0].why === 'unknown-long' && odd[0].still === 20, JSON.stringify(odd));
 stillNow = 0;
-odd = odds([...Array(130).fill(null), '/b'], () => { r.rerouterConfig.oddRules = { unknownSec: 15, frozenSec: 60, noEffectActions: 10, loopCount: 3, unknownStillSec: 10, movingUnknownSec: 600 }; });
+odd = odds([...Array(130).fill(null), '/b'], () => { r.rerouterConfig.oddRules = { unknownSec: 15, frozenSec: 60, noEffectActions: 10, noEffectStillSec: 15, loopCount: 3, unknownStillSec: 10, movingUnknownSec: 600 }; });
 check('a screen that keeps changing for 10 minutes is told once: unknown-moving (never hidden)', odd.length === 1 && odd[0].why === 'unknown-moving' && odd[0].ms >= 600000, JSON.stringify(odd.map((o: any) => o.why + ':' + o.ms)));
 r.screen.isTrackingStill = () => false;
 odd = odds([...Array(8).fill(null), '/b']);
@@ -317,10 +325,10 @@ odd = odds(['/a', null, '/a', null, '/a', null, '/a']);
 check('through a screen that stands still it is a loop', odd.filter((e: any) => e.why === 'loop' && e.via === 'unknown').length === 1, JSON.stringify(odd.map((o: any) => o.why)));
 r.screen.isTrackingStill = () => false;
 r.unknownRouteAction = () => {};
-r.rerouterConfig.oddRules = { unknownSec: 0, frozenSec: 0, noEffectActions: 0, loopCount: 0, unknownStillSec: 0, movingUnknownSec: 0 };
+r.rerouterConfig.oddRules = { unknownSec: 0, frozenSec: 0, noEffectActions: 0, noEffectStillSec: 0, loopCount: 0, unknownStillSec: 0, movingUnknownSec: 0 };
 odd = odds(['/a', '/b', '/a', '/b', '/a', '/b', '/a'].concat(Array(8).fill(null) as any, ['/b']));
 check('a rule that is 0 is off', odd.length === 0, JSON.stringify(odd));
-r.rerouterConfig.oddRules = { unknownSec: 15, frozenSec: 60, noEffectActions: 10, loopCount: 3, unknownStillSec: 10, movingUnknownSec: 600 };
+r.rerouterConfig.oddRules = { unknownSec: 15, frozenSec: 60, noEffectActions: 10, noEffectStillSec: 15, loopCount: 3, unknownStillSec: 10, movingUnknownSec: 600 };
 
 // task_end: cut off at its time limit by the time that really passed
 r.rerouterConfig.eventLog = true;

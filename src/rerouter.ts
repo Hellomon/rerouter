@@ -1096,7 +1096,12 @@ export class Rerouter {
     const frozen = typeof fields.still === 'number' ? fields.still : 0;
     if (rules.frozenSec > 0 && frozen >= rules.frozenSec) {
       this.odd('frozen', task, { path: context.path, ms: context.matchDuring, still: frozen, actions: this.stayActions, action_ms: this.stayActionMs }, pinned);
-    } else if (rules.noEffectActions > 0 && this.stayActions >= rules.noEffectActions && this.stayActionMs < context.matchDuring / 2) {
+    } else if (
+      rules.noEffectActions > 0 &&
+      this.stayActions >= rules.noEffectActions &&
+      this.stayActionMs < context.matchDuring / 2 &&
+      (typeof fields.still !== 'number' || frozen >= rules.noEffectStillSec) // the screen is tracked: it has to be standing still, as it does when an action has no effect
+    ) {
       this.odd('no-effect', task, { path: context.path, ms: context.matchDuring, actions: this.stayActions, action_ms: this.stayActionMs }, pinned);
     }
   }

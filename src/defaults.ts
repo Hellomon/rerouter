@@ -12,7 +12,7 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   strictMode: false,
   checkFrozenScreen: true,
   debugSlackUrl: '',
-  oddRules: { unknownSec: 15, frozenSec: 60, noEffectActions: 10, loopCount: 3, unknownStillSec: 10, movingUnknownSec: 600 },
+  oddRules: { unknownSec: 15, frozenSec: 60, noEffectActions: 10, noEffectStillSec: 15, loopCount: 3, unknownStillSec: 10, movingUnknownSec: 600 },
   eventLog: false,
   logger: {
     overrideGlobalConsole: false,
