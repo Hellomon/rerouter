@@ -2,6 +2,7 @@ export * from './src/screen';
 export * from './src/rerouter';
 export * from './src/struct';
 export * from './src/utils';
+export * from './src/eventLog';
 export const version = 1;
 
 declare global {

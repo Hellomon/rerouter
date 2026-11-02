@@ -302,10 +302,32 @@ export class Utils {
     }
   }
 
+  /**
+   * A flat folder of pictures `<time>_<suffix>.png` with their thumbnails `<time>_<suffix>.jpg`: what is older than maxDays (when it is above 0) goes,
+   * and then all but the newest maxFiles pictures; a thumbnail goes with its picture, and one without a picture goes too.
+   */
+  public static cleanupFlatFolder(folderPath: string, maxFiles: number, maxDays: number, suffix: string, saveImageRoot: string = DEFAULT_REROUTER_CONFIG.saveImageRoot): void {
+    try {
+      if (folderPath.charAt(0) === '/') {
+        folderPath = folderPath.substring(1);
+      }
+      const baseFolder = `${saveImageRoot}${folderPath}`;
+      if (maxDays > 0) {
+        const old = execute(`find "${baseFolder}" -maxdepth 1 -type f -mtime +${maxDays} 2>/dev/null || true`).trim();
+        if (old) {
+          Utils.batchDelete(old.split('\n').filter(f => f.trim()));
+        }
+      }
+      Utils.cleanupByFileCount(baseFolder, maxFiles, suffix);
+    } catch (error: any) {
+      console.warn(`Warning in cleanupFlatFolder: ${error.message}`);
+    }
+  }
+
   private static cleanupByDays(baseFolder: string, maxDays: number): void {
     try {
       // Use find command to get items older than maxDays (more reliable on Android)
-      const findCmd = `find "${baseFolder}" -maxdepth 1 -mtime +${maxDays} 2>/dev/null || true`;
+      const findCmd = `find "${baseFolder}" -maxdepth 1 -mtime +${maxDays} ! -name stuck 2>/dev/null || true`;   // `stuck` (Screen.pinStuckScreenshot) has its own limits
       const oldItems = execute(findCmd).trim();
       if (!oldItems) return;
 
@@ -331,14 +353,15 @@ export class Utils {
    * Keep the newest maxFiles pictures of the folder. The thumbnails (`<name>.jpg` beside `<name>_log.png`... see Screen.saveLogThumbnail) are not counted, so
    * that they do not take the place of a picture; the thumbnail of a picture that is deleted goes with it, and one whose picture is not there is deleted too.
    */
-  private static cleanupByFileCount(baseFolder: string, maxFiles: number): void {
+  private static cleanupByFileCount(baseFolder: string, maxFiles: number, suffix: string = '_log'): void {
     try {
       // Use ls -t1 to get files sorted by time (newest first), one per line
       const sortedFiles = execute(`ls -t1 ${baseFolder} 2>/dev/null || true`).trim();
       if (!sortedFiles) return;
 
-      const names = sortedFiles.split('\n').map(f => f.trim()).filter(f => f);
-      const isThumb = (name: string) => /_log\.jpg$/.test(name);
+      // only pictures and thumbnails are counted: a folder in it (`stuck`, a day) is not a picture and is never deleted here
+      const names = sortedFiles.split('\n').map(f => f.trim()).filter(f => /\.(png|jpg)$/.test(f));
+      const isThumb = (name: string) => name.length > suffix.length + 4 && name.substring(name.length - suffix.length - 4) === suffix + '.jpg';
       const pictures = names.filter(name => !isThumb(name));
       const keep = new Set(pictures.slice(0, maxFiles));
       const thumbOf = (name: string) => name.replace(/\.png$/, '.jpg');

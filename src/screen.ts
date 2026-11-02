@@ -11,9 +11,13 @@ export class Screen {
   private logThumbMs = 0;
   private logSavedSince = 0;
   private logLastFile = '';
-  // the still screen (trackStill): the small copy of the last screenshot, when it was taken, and the run of screenshots that were the same
-  private still = { thumb: null as Image | null, lastAt: 0, runStart: 0, runEnd: 0, frozenSince: 0, watchedMs: 0, frames: 0, lastBeat: 0, announced: false };
-  /** The name of the task that runs now, for the `SCR` lines; Rerouter sets it. */
+  private logLastAt = 0;
+  // the still screen (trackStill): the small copy of the last screenshot, when it was taken, and since when the screen has not changed
+  private still = { thumb: null as Image | null, lastAt: 0, frozenSince: 0 };
+  // the screens kept by pinStuckScreenshot (the newest first): the file name, and the small copy that a new one is compared with
+  private pinned: { name: string; thumb: Image }[] = [];
+  private static readonly PINNED_REMEMBERED = 20;
+  /** The name of the task that runs now, for the event lines; Rerouter sets it. */
   public taskNameProvider: () => string = () => '-';
 
   public constructor(config: ScreenConfig) {
@@ -219,6 +223,7 @@ export class Screen {
     try {
       // quiet: not a line of the log for every picture
       this.logLastFile = Utils.saveScreenshotToDisk(folderPath, 'log', true, shot, DEFAULT_REROUTER_CONFIG.saveImageRoot, true);
+      this.logLastAt = Date.now();
       if (thumbnail && shot !== undefined) {
         this.saveLogThumbnail(shot, this.logLastFile);
       }
@@ -333,75 +338,34 @@ export class Screen {
   }
 
   /**
-   * Is the screen changing? Every screenshot the script takes is compared with the one before it (both as a small picture, so it costs little) and
-   * what was seen is written to the log, for the monitor (Tailmon) to read without the pictures:
-   *
-   *   SCR ts=2026-10-31T05:38:25 task=pvp still=18 end=changed      a run of the same screen, 18 s long, has ended (end=ongoing: it goes on)
-   *   SCR ts=2026-10-31T05:39:25 task=pvp watch=60 frames=14        in the last 60 s 14 screenshots were compared (what was looked at)
-   *
-   * A run is from the first of the screenshots that were the same to the last of them, so it is a little shorter than the screen really stood
-   * still: the screenshots are a few seconds apart. Two screenshots more than MAX_STILL_GAP_MS apart are not compared (the script was not looking).
+   * Is the screen changing? Every screenshot the script takes is compared with the one before it (both as a small picture, so it costs little): getFrozenSeconds says how
+   * long the screen has been the same, which checkScreenFrozen reads instead of taking a screenshot of its own. Nothing is written to the log.
    */
   private trackStill(image: Image) {
     const c = this.config;
     if (!this.isTrackingStill()) {
       return;
     }
-    const now = Date.now();
     const st = this.still;
     const thumb = resizeImage(image, 160, 90);
-    if (c.logStillScreen && !st.announced) {
-      st.announced = true;
-      st.lastBeat = now;
-      this.logStill(`on score=${c.stillScreenScore} min=${c.stillScreenMinSeconds} beat=${c.stillScreenHeartbeatSeconds}`);
-    }
     if (st.thumb !== null) {
-      const gap = now - st.lastAt;
-      const same = getIdentityScore(thumb, st.thumb) > c.stillScreenScore;
-      // the frozen screen (getFrozenSeconds) goes on through a gap: the screen is the same as the last time it was looked at, only a change ends it
-      if (same) {
+      // the frozen time goes on through a gap: the screen is the same as the last time it was looked at, only a change ends it
+      if (getIdentityScore(thumb, st.thumb) > c.stillScreenScore) {
         if (st.frozenSince === 0) {
           st.frozenSince = st.lastAt;
         }
       } else {
         st.frozenSince = 0;
       }
-      if (gap > Screen.MAX_STILL_GAP_MS) {
-        this.endStillRun('gap');
-      } else {
-        st.watchedMs += gap;
-        st.frames++;
-        if (same) {
-          if (st.runStart === 0) {
-            st.runStart = st.lastAt;
-          }
-          st.runEnd = now;
-        } else {
-          this.endStillRun('changed');
-        }
-      }
       releaseImage(st.thumb);
     }
     st.thumb = thumb;
-    st.lastAt = now;
-
-    if (c.logStillScreen && now - st.lastBeat >= c.stillScreenHeartbeatSeconds * 1000) {
-      if (st.runStart !== 0 && st.runEnd - st.runStart >= c.stillScreenMinSeconds * 1000) {
-        this.logStill(`still=${Math.round((st.runEnd - st.runStart) / 1000)} end=ongoing`);
-      }
-      if (st.frames > 0) {
-        // nothing is said of a minute in which nothing was compared: that the line is not there is how the monitor knows it was not looked at
-        this.logStill(`watch=${Math.round(st.watchedMs / 1000)} frames=${st.frames}`);
-      }
-      st.watchedMs = 0;
-      st.frames = 0;
-      st.lastBeat = now;
-    }
+    st.lastAt = Date.now();
   }
 
-  /** Is every screenshot compared with the one before (trackStillScreen, or logStillScreen which needs it)? */
+  /** Is every screenshot compared with the one before (trackStillScreen)? */
   public isTrackingStill(): boolean {
-    return this.config.trackStillScreen || this.config.logStillScreen;
+    return this.config.trackStillScreen;
   }
 
   /** How long the screen has not changed, in seconds, as of the last screenshot (0 when it changed, or when nothing is compared). */
@@ -410,24 +374,61 @@ export class Screen {
     return st.frozenSince === 0 ? 0 : (st.lastAt - st.frozenSince) / 1000;
   }
 
-  private endStillRun(reason: string) {
-    const st = this.still;
-    if (st.runStart !== 0 && st.runEnd - st.runStart >= this.config.stillScreenMinSeconds * 1000) {
-      this.logStill(`still=${Math.round((st.runEnd - st.runStart) / 1000)} end=${reason}`);
+  /**
+   * The picture of the image log that was saved last, to put in an event line: `name` is the file without the folder and the `.png` (the time of the
+   * picture in the clock of the script: `2026-11-02T10.15.30_log`), `ageMs` how long before now it was saved. null when the image log has saved nothing.
+   */
+  public getLastLogImage(): { name: string; ageMs: number } | null {
+    if (this.logLastFile === '') {
+      return null;
     }
-    st.runStart = 0;
-    st.runEnd = 0;
+    const name = this.logLastFile.substring(this.logLastFile.lastIndexOf('/') + 1).replace(/\.png$/, '');
+    return { name: name, ageMs: Date.now() - this.logLastAt };
   }
 
-  private logStill(fields: string) {
-    if (!this.config.logStillScreen) {
-      return;
+  /**
+   * Keep the screen that no route matches (Rerouter calls it when that has lasted a while). The picture is the one the script sees (the development size,
+   * the one the pages are made for) and goes to `<logScreenshotFolder>/stuck/`, with a thumbnail, in its own limits (stuckScreenshotMaxFiles, stuckScreenshotMaxDays),
+   * so that the image log going round does not take it away. A screen that is the same as one that was kept (stuckSameScore) is not kept again: the name of that one
+   * comes back with `same: true`. null when this is off, there is no folder, or saving failed (a warning: the script goes on).
+   */
+  public pinStuckScreenshot(image: Image): { name: string; same: boolean } | null {
+    const c = this.config;
+    if (!c.stuckScreenshot || c.logScreenshotFolder === '') {
+      return null;
     }
-    const stamp = Utils.timeLabel(overrideConsole.timezoneOffsetHour).replace(' ', 'T');
-    console.log(`SCR ts=${stamp} task=${this.taskNameProvider()} ${fields}`);
+    let thumb: Image | undefined;
+    try {
+      thumb = resizeImage(image, 160, 90);
+      for (let i = 0; i < this.pinned.length; i++) {
+        if (getIdentityScore(thumb, this.pinned[i].thumb) >= c.stuckSameScore) {
+          const found = this.pinned.splice(i, 1)[0];
+          this.pinned.unshift(found);
+          return { name: found.name, same: true };
+        }
+      }
+      const folder = `${c.logScreenshotFolder}/stuck`;
+      const path = Utils.saveScreenshotToDisk(folder, 'stuck', true, image, DEFAULT_REROUTER_CONFIG.saveImageRoot, true);
+      if (c.logScreenshotThumbnail) {
+        this.saveLogThumbnail(image, path);
+      }
+      const name = path.substring(path.lastIndexOf('/') + 1).replace(/\.png$/, '');
+      this.pinned.unshift({ name: name, thumb: thumb });
+      thumb = undefined; // kept
+      while (this.pinned.length > Screen.PINNED_REMEMBERED) {
+        releaseImage((this.pinned.pop() as { name: string; thumb: Image }).thumb);
+      }
+      Utils.cleanupFlatFolder(folder, c.stuckScreenshotMaxFiles, c.stuckScreenshotMaxDays, '_stuck', DEFAULT_REROUTER_CONFIG.saveImageRoot);
+      return { name: name, same: false };
+    } catch (error: any) {
+      console.warn(`Warning in pinStuckScreenshot: ${error.message}`);
+      return null;
+    } finally {
+      if (thumb !== undefined) {
+        releaseImage(thumb);
+      }
+    }
   }
-
-  private static readonly MAX_STILL_GAP_MS = 30000;
 
   public getRotation(): 'vertical' | 'horizontal' {
     const { width, height } = getScreenSize();

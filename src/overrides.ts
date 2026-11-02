@@ -18,6 +18,11 @@ const originConsole = (console as any)._override
       log: createShadowMethod(console, console.log),
     };
 
+/** the console.log as it was before the override: no time header, no level, no cut at 1000 characters */
+export function plainLog(...args: any[]): void {
+  originConsole.log(...args);
+}
+
 type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'ALL';
 const logLevels: Record<LogLevel, number> = {
   ERROR: 0,

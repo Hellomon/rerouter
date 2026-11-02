@@ -196,10 +196,15 @@ export interface ScreenConfig {
   logScreenshotThumbnailSize: number; // the long side of the thumbnail in pixels: 160 (the default) makes 160x90 of a 1280x720 screen, 240 makes 240x135; never larger than the screen
   logScreenshotThumbnailQuality: number; // JPEG quality, 1 to 100
   trackStillScreen: boolean; // compare every screenshot the script takes with the one before it (and let checkScreenFrozen read that); off by default, off keeps the old frozen check
-  logStillScreen: boolean; // write `SCR ...` lines about a screen that does not change (see Screen.trackStill); off by default
   stillScreenScore: number; // two screenshots with a getIdentityScore above this are the same screen
-  stillScreenMinSeconds: number; // a still run shorter than this is not written
-  stillScreenHeartbeatSeconds: number; // how often the `watch` line (and the line of a run that goes on) is written
+  stuckScreenshot: boolean; // keep the screen when no route matches for stuckAfterSec (see Screen.pinStuckScreenshot): in its own folder, with its own limits, apart from the image log; off by default
+  stuckAfterSec: number; // the unknown screen is kept at this many seconds, and again at 4, 20, 60 and 240 times that (15, 60, 300, 900, 3600 s)
+  stuckScreenshotMaxFiles: number; // the newest pictures that the stuck folder keeps (the thumbnails are not counted)
+  stuckScreenshotMaxDays: number; // and nothing older than this many days; -1 for no limit by age
+  stuckStayAfterSec: number; // a route that matches and stays the route for this many seconds (and 4, 20, 60, 240 times that) is told as a `stay` event, and its screen is kept too when stuckScreenshot is on; 0 for never
+  stuckRepeatEntries: number; // a task that goes into the unknown screen from the same route this many times in one round is going round in a circle (A, a page it does not know, BACK, A ...)
+  stuckRepeatAfterSec: number; // and then the unknown screen is kept after this many seconds (not stuckAfterSec): the script usually presses BACK sooner than that
+  stuckSameScore: number; // a screen with a getIdentityScore of at least this to one that is kept already is the same screen: it is not kept again
 }
 
 export interface RerouterConfig {
@@ -214,6 +219,7 @@ export interface RerouterConfig {
   strictMode: boolean;
   checkFrozenScreen: boolean; // enable/disable screen frozen detection
   debugSlackUrl: string;
+  eventLog: boolean; // if true, Rerouter itself writes event lines (`@ev {...}`, see logEvent) for the monitor; off by default. logEvent() called by a script always writes
   logger: {
     overrideGlobalConsole: boolean; // if true, this will override global console among all modules
     timezoneOffsetHour: number | undefined;

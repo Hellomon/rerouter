@@ -12,6 +12,7 @@ export const DEFAULT_REROUTER_CONFIG: RerouterConfig = {
   strictMode: false,
   checkFrozenScreen: true,
   debugSlackUrl: '',
+  eventLog: false,
   logger: {
     overrideGlobalConsole: false,
     timezoneOffsetHour: 8,
@@ -45,10 +46,15 @@ export const DEFAULT_SCREEN_CONFIG: ScreenConfig = {
   logScreenshotThumbnailSize: 160, // the long side in pixels: 160 is 160x90 of a 16:9 screen (about 3 KB), 240 is 240x135 (about 5 to 7 KB, the text on the screen is nearly readable)
   logScreenshotThumbnailQuality: 60,
   trackStillScreen: false,
-  logStillScreen: false,
   stillScreenScore: 0.999, // what checkScreenFrozen uses
-  stillScreenMinSeconds: 6,
-  stillScreenHeartbeatSeconds: 60,
+  stuckScreenshot: false,
+  stuckAfterSec: 15,
+  stuckScreenshotMaxFiles: 300,
+  stuckScreenshotMaxDays: 14,
+  stuckStayAfterSec: 60,
+  stuckRepeatEntries: 3,
+  stuckRepeatAfterSec: 5,
+  stuckSameScore: 0.99,
 };
 
 // NOTE: we should not use this config, but use rerouter.configValue instead

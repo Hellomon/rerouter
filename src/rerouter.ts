@@ -4,6 +4,7 @@ import { Utils } from './utils';
 import { updateGameStatus as xrUpdateGameStatus, sendActivityLog as xrSendActivityLog, sendLog as xrSendLog } from './xr';
 
 import { overrideConsole } from './overrides';
+import { logEvent, setEventTaskProvider } from './eventLog';
 import { DEFAULT_REROUTER_CONFIG, DEFAULT_SCREEN_CONFIG, DEFAULT_CONFIG_VALUE, defaultHandleConflictRoutes } from './defaults';
 
 import 'core-js/es/object/assign';
@@ -25,6 +26,10 @@ export class Rerouter {
   private routeContext: RouteContext | null = null;
   /** The name of the task that runs now, for the `SCR` lines of the still-screen log; with none, the task of the last route loop. */
   public taskNameProvider: (() => string) | undefined = undefined;
+  private unknownEntries: { [route: string]: number } = {}; // in this round of the task: how many times the unknown screen was entered from each route
+  private stayStage = 0; // the same for a route that matches and stays (checkStay)
+  private pinStage = 0; // how many of the moments of an unknown stretch (stuckAfterSec and 4, 20, 60, 240 times that) have kept the screen; a route that matches starts again
+  private lastRealPath = ''; // the last route that matched, kept over the unknown steps after it (context.lastMatchedPath is '' from the second of them)
   private unknownRouteAction: ((context: RouteContext, image: Image, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private beforeStartAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
   private afterStartAppRouteAction: ((context: RouteContext, finishRound: (exitTask?: boolean) => void) => void) | null = null;
@@ -89,6 +94,7 @@ export class Rerouter {
     // new screen if screen config changed
     this.screen = new Screen(this.screenConfig);
     this.screen.taskNameProvider = () => (this.taskNameProvider ? this.taskNameProvider() : this.routeContext ? this.routeContext.task.name : '-');
+    setEventTaskProvider(this.screen.taskNameProvider);
   }
 
   /**
@@ -506,6 +512,9 @@ export class Rerouter {
       task.startTime = now;
       task.runTimes = 0;
       let exitTask = false;
+      this.event('task_start', task.name, { max: task.config.maxTaskDuring > 0 ? Math.round(task.config.maxTaskDuring / 1000) : undefined });
+      let cutOff = false;
+      this.unknownEntries = {};
 
       // Execute global beforeTask callback if defined
       let globalSkipRoute = false;
@@ -546,6 +555,7 @@ export class Rerouter {
         const during = now - task.startTime;
         if (task.config.maxTaskDuring > 0 && during >= task.config.maxTaskDuring) {
           this.log(`Task: ${task.name} taskDuring: ${during}/${task.config.maxTaskDuring} reached, stop`);
+          cutOff = true;
           break;
         }
       }
@@ -560,6 +570,7 @@ export class Rerouter {
         }
       }
 
+      this.event('task_end', task.name, { ms: Date.now() - now, runs: task.runTimes, reason: cutOff ? 'timeout' : 'done' });
       Utils.sleep(this.rerouterConfig.taskDelay);
     }
   }
@@ -634,6 +645,19 @@ export class Rerouter {
 
       // first match
       if (context.path !== context.lastMatchedPath) {
+        if (context.path !== '') {
+          // the route changed: how long the one before stayed (an unknown stretch is a stay of path '')
+          this.event('route', task.name, {
+            path: context.path,
+            from: context.lastMatchedPath,
+            prev_ms: now - context.matchStartTS,
+            pages: (matchedPages || []).map(page => page.name).join(','),
+            last: context.lastMatchedPath === '' ? this.lastRealPath || undefined : undefined, // the route before the unknown stretch that this one ends
+          }, true);
+          this.lastRealPath = context.path;
+          this.pinStage = 0;
+        }
+        this.stayStage = 0;
         context.matchTimes = 0;
         context.matchStartTS = now;
       }
@@ -642,10 +666,22 @@ export class Rerouter {
 
       if (matches.length === 0) {
         // no match
+        // a screen that stays unknown goes on for hours: the first steps are told one by one, then every tenth (the next route says how long it was)
+        if (context.matchTimes === 1) {
+          this.unknownEntries[this.lastRealPath] = (this.unknownEntries[this.lastRealPath] || 0) + 1;
+        }
+        const pinned = this.pinStuck(context.matchDuring, image, this.unknownEntries[this.lastRealPath] || 0);
+        if (pinned) {
+          // the picture to look at is the one that was kept at this moment, not the nearest of the image log
+          this.event('unknown', task.name, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath, img: pinned.name, pin: pinned.same ? 'same' : 'new' }, true);
+        } else if (context.matchTimes <= 5 || context.matchTimes % 10 === 0) {
+          this.event('unknown', task.name, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath }, true);
+        }
         if (this.unknownRouteAction !== null) {
           this.unknownRouteAction(context, image, finishRoundFunc);
         }
       } else if (matches.length === 1) {
+        this.checkStay(task.name, context, image, matchedPages);
         // single match with highest priority
         if (this.rerouterConfig.saveMatchedScreen) {
           Utils.saveScreenshotToDisk('matched', `${matches[0].matchedRoute.path}`, false, image, this.rerouterConfig.saveImageRoot);
@@ -951,6 +987,76 @@ export class Rerouter {
     console.log('[Rerouter][debug]', ...args);
   }
 
+  /**
+   * A route that matches and stays the route (the script does the action and the screen does not change to another route) is no progress either, and no unknown screen tells it.
+   * At stuckStayAfterSec and 4, 20, 60, 240 times that: a `stay` event, and the screen is kept (pinStuckScreenshot) when stuckScreenshot is on. Nothing is done when neither
+   * the event line nor the kept screen is wanted. Some routes stay long on purpose (a fight): the monitor knows which, Rerouter does not.
+   */
+  private checkStay(task: string, context: RouteContext, image: Image, pages: Page[]): void {
+    const config = this.screenConfig;
+    if (config.stuckStayAfterSec <= 0 || (!config.stuckScreenshot && !this.rerouterConfig.eventLog)) {
+      return;
+    }
+    const moments = [1, 4, 20, 60, 240];
+    if (this.stayStage >= moments.length || context.matchDuring < config.stuckStayAfterSec * moments[this.stayStage] * 1000) {
+      return;
+    }
+    while (this.stayStage < moments.length && context.matchDuring >= config.stuckStayAfterSec * moments[this.stayStage] * 1000) {
+      this.stayStage++;
+    }
+    const pinned = config.stuckScreenshot ? this.screen.pinStuckScreenshot(image) : null;
+    const fields: { [key: string]: string | number | boolean | undefined } = {
+      path: context.path,
+      ms: context.matchDuring,
+      times: context.matchTimes,
+      pages: (pages || []).map(page => page.name).join(','),
+    };
+    if (pinned) {
+      fields.img = pinned.name;
+      fields.pin = pinned.same ? 'same' : 'new';
+    }
+    this.event('stay', task, fields, true);
+  }
+
+  /** Keep the unknown screen at the moments of a stretch that goes on (see pinStage); the kept picture, or null when it is not the time or nothing is kept */
+  private pinStuck(unknownMs: number, image: Image, entries: number): { name: string; same: boolean } | null {
+    const config = this.screenConfig;
+    if (!config.stuckScreenshot || config.stuckAfterSec <= 0) {
+      return null;
+    }
+    // going round in a circle (the same route led into the unknown screen again and again): the screen is kept sooner, the script does not wait that long before BACK
+    const base = entries >= config.stuckRepeatEntries && config.stuckRepeatAfterSec > 0 ? Math.min(config.stuckAfterSec, config.stuckRepeatAfterSec) : config.stuckAfterSec;
+    const moments = [1, 4, 20, 60, 240];
+    if (this.pinStage >= moments.length || unknownMs < base * moments[this.pinStage] * 1000) {
+      return null;
+    }
+    // a stretch that was long when it was first looked at (a slow step) has passed more than one moment: they are all spent, the screen is kept once
+    while (this.pinStage < moments.length && unknownMs >= base * moments[this.pinStage] * 1000) {
+      this.pinStage++;
+    }
+    return this.screen.pinStuckScreenshot(image);
+  }
+
+  /** an event line of Rerouter itself, only when `eventLog` is on (a script that wants a line calls logEvent) */
+  private event(name: string, task: string, fields: { [key: string]: string | number | boolean | undefined }, withImage: boolean = false): void {
+    if (!this.rerouterConfig.eventLog) {
+      return;
+    }
+    const all: { [key: string]: string | number | boolean | undefined } = { task: task };
+    Object.keys(fields).forEach(function (k) {
+      all[k] = fields[k];
+    });
+    if (withImage) {
+      // the picture of the image log that is nearest in the past: the event is found with it, with no guess from the clock
+      const image = this.screen.getLastLogImage();
+      if (image && all.img === undefined) {
+        all.img = image.name;
+        all.img_ms = image.ageMs;
+      }
+    }
+    logEvent(name, all);
+  }
+
   private warning(...args: any[]): void {
     console.log('[Rerouter][warning]', ...args);
   }
@@ -1034,7 +1140,7 @@ export class Rerouter {
 
   /**
    * Watches for a screen that does not change, and restarts after 10 minutes of it.
-   * With screenConfig.trackStillScreen (or logStillScreen) off, which is how it is unless a script turns it on, it does what it always did: once a minute
+   * With screenConfig.trackStillScreen off, which is how it is unless a script turns it on, it does what it always did: once a minute
    * a screenshot of its own, compared with the one of the minute before. With it on, no screenshot of its own: the screenshots the script takes are
    * compared with each other (Screen.trackStill), and this reads how long the screen has been the same.
    */
