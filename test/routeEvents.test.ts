@@ -164,24 +164,27 @@ stays = stay({ pin: false, events: false }, 14);
 check('with neither, nothing at all (the ordinary machines)', stays.length === 0 && kept.length === 0);
 r.rerouterConfig.eventLog = true;
 
-// an unknown screen that the action says is expected (a fight): told as expected, not kept; when it stops being expected the moments that were passed are kept at once
+// an unknown screen that keeps changing (a fight) is told as it is and not kept; when it stops changing the moments that were passed are kept at once, once
 r.screenConfig.stuckScreenshot = true;
 r.rerouterConfig.eventLog = true;
-let fighting = true;
-r.unknownRouteAction = () => { if (fighting) { r.markUnknownExpected('battle'); } };
+r.screen.isTrackingStill = () => true;
+let stillNow = 0;
+r.screen.getFrozenSeconds = () => stillNow;
 frames.length = 0;
 for (let i = 0; i < 12; i++) { frames.push(null); }
 frames.push('/c');
-frame = 0; r.routeContext = null; r.lastRealPath = '/a'; r.pinStage = 0; r.unknownEntries = {};
+frame = 0; r.routeContext = null; r.lastRealPath = '/a'; r.pinStage = 0; r.unknownEntries = {}; r.unknownStillMax = 0; r.unknownTracked = false; r.oddUnknownTold = false; r.oddMovingTold = false;
 kept.length = 0; printed.length = 0;
-const stepBack = r.unknownRouteAction;
 let step = 0;
-r.unknownRouteAction = () => { step++; fighting = step <= 8; stepBack(); };       // a fight for 8 steps (35 s), then it is no fight
+r.unknownRouteAction = () => { step++; stillNow = step <= 8 ? 0 : 12; };       // the screen changes for 8 steps (35 s), then it stands still
 r.startRouteLoop(task);
 const fight = events().filter((e: any) => e.e === 'unknown');
-check('a fight: told as expected, the first five steps, nothing kept', fight.slice(0, 5).every((e: any) => e.expected === 'battle' && e.pin === undefined) && fight.slice(0, 5).map((e: any) => e.n).join(',') === '1,2,3,4,5', fight.map((e: any) => e.n + (e.expected ? 'e' : '') + (e.pin ? 'p' : '')).join(','));
-check('when it is no fight any more, the screen is kept at once (the moments passed), once', kept.length === 1 && fight.filter((e: any) => e.pin).length === 1 && fight.filter((e: any) => e.pin)[0].n === 9, kept.length + ' ' + fight.map((e: any) => e.n + (e.expected ? 'e' : '') + (e.pin ? 'p' : '')).join(','));
+check('a screen that keeps changing: told with its still seconds, nothing kept', fight.slice(0, 5).every((e: any) => e.still === 0 && e.pin === undefined) && fight.slice(0, 5).map((e: any) => e.n).join(',') === '1,2,3,4,5', fight.map((e: any) => e.n + ':' + e.still + (e.pin ? 'p' : '')).join(','));
+check('when it stands still the screen is kept at once (the moments passed), once', kept.length === 1 && fight.filter((e: any) => e.pin).length === 1 && fight.filter((e: any) => e.pin)[0].n === 9, kept.length + ' ' + fight.map((e: any) => e.n + ':' + e.still + (e.pin ? 'p' : '')).join(','));
+check('nothing is called expected: the marker is gone', typeof r.markUnknownExpected === 'undefined');
 r.unknownRouteAction = () => {};
+stillNow = 0;
+r.screen.isTrackingStill = () => false;
 r.screenConfig.stuckScreenshot = true;
 
 // off: nothing is kept
@@ -239,7 +242,7 @@ const realDoAction = Object.getPrototypeOf(r).doActionForRoute;
 function odds(frames_: (string | null)[], setup: () => void = () => {}) {
   r.rerouterConfig.eventLog = true; r.screenConfig.stuckScreenshot = false;
   frames.length = 0; frames_.forEach(f => frames.push(f)); frame = 0;
-  r.routeContext = null; r.lastRealPath = ''; r.pinStage = 0; r.stayStage = 0; r.unknownEntries = {}; r.transitions = {}; r.unknownExpectedStretch = false; r.oddUnknownTold = false;
+  r.routeContext = null; r.lastRealPath = ''; r.pinStage = 0; r.stayStage = 0; r.unknownEntries = {}; r.transitions = {}; r.unknownStillMax = 0; r.unknownTracked = false; r.oddUnknownTold = false; r.oddMovingTold = false;
   r.stayActions = 0; r.stayActionMs = 0;
   setup(); printed.length = 0;
   r.startRouteLoop(task);
@@ -284,8 +287,20 @@ r.screen.isTrackingStill = () => false;
 r.unknownRouteAction = () => {};
 odd = odds([...Array(8).fill(null), '/b']);
 check('a screen that no route matches for 15 s is odd once: unknown-long', odd.length === 1 && odd[0].why === 'unknown-long' && odd[0].ms >= 15000 && odd[0].level === 'yellow', JSON.stringify(odd));
-odd = odds([...Array(8).fill(null), '/b'], () => { r.unknownRouteAction = () => { r.markUnknownExpected('battle'); }; });
-check('a fight that the action says is expected is not odd', odd.length === 0, JSON.stringify(odd));
+r.screen.isTrackingStill = () => true;
+r.screen.getFrozenSeconds = () => stillNow;
+stillNow = 0;
+odd = odds([...Array(8).fill(null), '/b']);
+check('an unknown screen that keeps changing is not odd (a fight): no unknown-long', odd.length === 0, JSON.stringify(odd));
+stillNow = 20;
+odd = odds([...Array(8).fill(null), '/b']);
+check('the same screen standing still is odd: unknown-long', odd.length === 1 && odd[0].why === 'unknown-long' && odd[0].still === 20, JSON.stringify(odd));
+stillNow = 0;
+odd = odds([...Array(130).fill(null), '/b'], () => { r.rerouterConfig.oddRules = { unknownSec: 15, frozenSec: 60, noEffectActions: 10, loopCount: 3, unknownStillSec: 10, movingUnknownSec: 600 }; });
+check('a screen that keeps changing for 10 minutes is told once: unknown-moving (never hidden)', odd.length === 1 && odd[0].why === 'unknown-moving' && odd[0].ms >= 600000, JSON.stringify(odd.map((o: any) => o.why + ':' + o.ms)));
+r.screen.isTrackingStill = () => false;
+odd = odds([...Array(8).fill(null), '/b']);
+check('without the screen tracked every unknown screen is as before: unknown-long', odd.length === 1 && odd[0].why === 'unknown-long', JSON.stringify(odd));
 r.unknownRouteAction = () => {};
 // a loop: the same way round, in one round of a task
 odd = odds(['/a', '/b', '/a', '/b', '/a', '/b', '/a', '/b', '/a', '/b', '/a', '/b', '/a', '/b']);
@@ -293,13 +308,19 @@ const ab = odd.filter((e: any) => e.from === '/a' && e.to === '/b');
 check('the same way round 3 times is odd: loop, and again at 6', ab.map((e: any) => e.count).join(',') === '3,6' && ab[0].via === 'route' && ab[0].why === 'loop', JSON.stringify(ab));
 odd = odds(['/a', null, '/a', null, '/a', null, '/a']);
 check('a / unknown / a: a loop through an unknown screen', odd.some((e: any) => e.why === 'loop' && e.via === 'unknown' && e.from === '/a' && e.to === '/a' && e.count === 3), JSON.stringify(odd));
-odd = odds(['/a', null, '/a', null, '/a', null, '/a'], () => { r.unknownRouteAction = () => { r.markUnknownExpected('battle'); }; });
-check('the same through a fight is not odd', odd.filter((e: any) => e.why === 'loop').length === 0, JSON.stringify(odd));
+r.screen.isTrackingStill = () => true;
+stillNow = 0;
+odd = odds(['/a', null, '/a', null, '/a', null, '/a']);
+check('the same way round through a screen that keeps changing (a fight) is not a loop', odd.filter((e: any) => e.why === 'loop').length === 0, JSON.stringify(odd));
+stillNow = 20;
+odd = odds(['/a', null, '/a', null, '/a', null, '/a']);
+check('through a screen that stands still it is a loop', odd.filter((e: any) => e.why === 'loop' && e.via === 'unknown').length === 1, JSON.stringify(odd.map((o: any) => o.why)));
+r.screen.isTrackingStill = () => false;
 r.unknownRouteAction = () => {};
-r.rerouterConfig.oddRules = { unknownSec: 0, frozenSec: 0, noEffectActions: 0, loopCount: 0 };
+r.rerouterConfig.oddRules = { unknownSec: 0, frozenSec: 0, noEffectActions: 0, loopCount: 0, unknownStillSec: 0, movingUnknownSec: 0 };
 odd = odds(['/a', '/b', '/a', '/b', '/a', '/b', '/a'].concat(Array(8).fill(null) as any, ['/b']));
 check('a rule that is 0 is off', odd.length === 0, JSON.stringify(odd));
-r.rerouterConfig.oddRules = { unknownSec: 15, frozenSec: 60, noEffectActions: 10, loopCount: 3 };
+r.rerouterConfig.oddRules = { unknownSec: 15, frozenSec: 60, noEffectActions: 10, loopCount: 3, unknownStillSec: 10, movingUnknownSec: 600 };
 
 // task_end: cut off at its time limit by the time that really passed
 r.rerouterConfig.eventLog = true;

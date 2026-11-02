@@ -223,9 +223,11 @@ export interface RerouterConfig {
    * What Rerouter itself finds odd (an `odd` event, level yellow, with `why`), for the monitor: nobody has to know these rules to write a script. They are in one place so that they can be
    * tuned when yellow shows too often. unknownSec: a screen no route matches for this long; frozenSec: a route that matches while the screen has not changed for this long;
    * noEffectActions: a route that stays and whose action was called this many times, each one short, without the route changing; loopCount: the same way round in one round of a task
-   * (and again at twice that, four times ...). 0 turns a rule off.
+   * (and again at twice that, four times ...). unknownStillSec: an unknown screen that has changed within this many seconds is moving (a fight, a loading screen), not a page that is stuck:
+   * it is not kept, not `unknown-long`, not counted for a loop - but it is told as it is (`unknown` events with `still`) and is `unknown-moving` when it goes on for movingUnknownSec, so that it is never hidden.
+   * Needs trackStillScreen; without it every unknown screen is treated as before. 0 turns a rule off.
    */
-  oddRules: { unknownSec: number; frozenSec: number; noEffectActions: number; loopCount: number };
+  oddRules: { unknownSec: number; frozenSec: number; noEffectActions: number; loopCount: number; unknownStillSec: number; movingUnknownSec: number };
   eventLog: boolean; // if true, Rerouter itself writes event lines (`@ev {...}`, see logEvent) for the monitor; off by default. logEvent() called by a script always writes
   logger: {
     overrideGlobalConsole: boolean; // if true, this will override global console among all modules

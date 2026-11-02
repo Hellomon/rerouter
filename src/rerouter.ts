@@ -26,13 +26,14 @@ export class Rerouter {
   private routeContext: RouteContext | null = null;
   /** The name of the task that runs now, for the `SCR` lines of the still-screen log; with none, the task of the last route loop. */
   public taskNameProvider: (() => string) | undefined = undefined;
-  private unknownReason = ''; // set by markUnknownExpected during the action of an unknown step
   private unknownEntries: { [route: string]: number } = {}; // in this round of the task: how many times the unknown screen was entered from each route
   private stayActions = 0; // while the same route stays: how many times its action was called, and how long they took (script code)
   private stayActionMs = 0;
   private transitions: { [way: string]: number } = {}; // in this round of the task: how many times each way from a route to another was walked
-  private unknownExpectedStretch = false; // the action said some step of this unknown stretch is expected (a fight)
+  private unknownStillMax = 0; // in the unknown stretch that is going on: the longest the screen has not changed (needs trackStillScreen)
+  private unknownTracked = false;
   private oddUnknownTold = false; // the stretch of unknown screen that is going on was told as odd already
+  private oddMovingTold = false; // and as a screen that keeps changing for a long time
   private stayStage = 0; // the same for a route that matches and stays (checkStay)
   private pinStage = 0; // how many of the moments of an unknown stretch (stuckAfterSec and 4, 20, 60, 240 times that) have kept the screen; a route that matches starts again
   private lastRealPath = ''; // the last route that matched, kept over the unknown steps after it (context.lastMatchedPath is '' from the second of them)
@@ -685,7 +686,9 @@ export class Rerouter {
           this.lastRealPath = context.path;
           this.pinStage = 0;
           this.oddUnknownTold = false;
-          this.unknownExpectedStretch = false;
+          this.oddMovingTold = false;
+          this.unknownStillMax = 0;
+          this.unknownTracked = false;
         }
         this.stayStage = 0;
         this.stayActions = 0;
@@ -701,11 +704,9 @@ export class Rerouter {
         if (context.matchTimes === 1) {
           this.unknownEntries[this.lastRealPath] = (this.unknownEntries[this.lastRealPath] || 0) + 1;
         }
-        this.unknownReason = '';
         if (this.unknownRouteAction !== null) {
           this.unknownRouteAction(context, image, finishRoundFunc);
         }
-        // after the action: it may have said that this unknown screen is expected (markUnknownExpected)
         this.tellUnknown(task.name, context, image);
       } else if (matches.length === 1) {
         this.checkStay(task.name, context, image, matchedPages);
@@ -1018,36 +1019,41 @@ export class Rerouter {
     console.log('[Rerouter][debug]', ...args);
   }
 
-  /**
-   * For the action of an unknown step (addUnknownAction): this screen is not a page that is missing, it is what the task expects to see (`reason`: 'battle', a fight that no route
-   * matches). The `unknown` event of the step says `expected` and the screen is not kept, so the monitor does not count it as stuck. It is for this step only.
-   */
-  public markUnknownExpected(reason: string): void {
-    this.unknownReason = reason;
-  }
-
-  /** the `unknown` event of a step, and the screen kept at the moments of a long stretch: not for a screen that the action said is expected, and the moments that are passed then are kept for later */
+  /** the `unknown` event of a step, the screen kept at the moments of a long stretch, and the odd of it. A screen that keeps changing (a fight) is told as it is and not kept. */
   private tellUnknown(task: string, context: RouteContext, image: Image): void {
+    const rules = this.rerouterConfig.oddRules;
     // a screen that stays unknown goes on for hours: the first steps are told one by one, then every tenth (the next route says how long it was)
     const thinned = context.matchTimes <= 5 || context.matchTimes % 10 === 0;
-    if (this.unknownReason) {
-      this.unknownExpectedStretch = true;
+    const base: { [key: string]: string | number | boolean | undefined } = { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath };
+    let moving = false;
+    if (this.screen.isTrackingStill()) {
+      const still = Math.round(this.screen.getFrozenSeconds());
+      base.still = still;
+      this.unknownTracked = true;
+      this.unknownStillMax = Math.max(this.unknownStillMax, still);
+      moving = rules.unknownStillSec > 0 && still < rules.unknownStillSec;
+    }
+    if (moving) {
+      // a screen that keeps changing (a fight, a loading screen) is not a page that is stuck. Told as it is, not kept; odd only when it goes on for very long, so that it cannot hide a real problem.
       if (thinned) {
-        this.event('unknown', task, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath, expected: this.unknownReason }, true);
+        this.event('unknown', task, base, true);
+      }
+      if (rules.movingUnknownSec > 0 && !this.oddMovingTold && context.matchDuring >= rules.movingUnknownSec * 1000) {
+        this.oddMovingTold = true;
+        this.odd('unknown-moving', task, { ms: context.matchDuring, n: context.matchTimes, last: this.lastRealPath, still: base.still });
       }
       return;
     }
     const pinned = this.pinStuck(context.matchDuring, image, this.unknownEntries[this.lastRealPath] || 0);
-    const long = this.rerouterConfig.oddRules.unknownSec;
-    if (long > 0 && !this.oddUnknownTold && context.matchDuring >= long * 1000) {
+    if (rules.unknownSec > 0 && !this.oddUnknownTold && context.matchDuring >= rules.unknownSec * 1000) {
       this.oddUnknownTold = true;
-      this.odd('unknown-long', task, { ms: context.matchDuring, n: context.matchTimes, last: this.lastRealPath }, pinned);
+      this.odd('unknown-long', task, { ms: context.matchDuring, n: context.matchTimes, last: this.lastRealPath, still: base.still }, pinned);
     }
     if (pinned) {
       // the picture to look at is the one that was kept at this moment, not the nearest of the image log
-      this.event('unknown', task, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath, img: pinned.name, pin: pinned.same ? 'same' : 'new' }, true);
+      this.event('unknown', task, Object.assign({}, base, { img: pinned.name, pin: pinned.same ? 'same' : 'new' }), true);
     } else if (thinned) {
-      this.event('unknown', task, { n: context.matchTimes, ms: context.matchDuring, last: this.lastRealPath }, true);
+      this.event('unknown', task, base, true);
     }
   }
 
@@ -1111,7 +1117,8 @@ export class Rerouter {
   /** the same way round (from a route, through a page that is not known or not, back to) in one round of a task: odd at loopCount, and again at twice that, four times ... */
   private checkLoop(task: string, from: string, to: string, via: string): void {
     const rules = this.rerouterConfig.oddRules;
-    if (!from || rules.loopCount <= 0 || this.unknownExpectedStretch) {
+    if (!from || rules.loopCount <= 0 || (via === 'unknown' && this.unknownTracked && this.unknownStillMax < rules.unknownStillSec)) {
+      // (a way round through an unknown screen that kept changing all the time was a fight, not a page that changed)
       return;
     }
     const way = from + '>' + to + '>' + via;
